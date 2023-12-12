@@ -2,10 +2,6 @@ import mongoose from 'mongoose';
 
 // Appointment Schema
 const appointmentSchema = new mongoose.Schema({
-    id: {
-        type: mongoose.Schema.Types.ObjectId,
-        default: mongoose.Types.ObjectId,
-    },
     date: {
         type: String,
         required: true,

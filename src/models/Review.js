@@ -1,10 +1,6 @@
 import mongoose from 'mongoose';
 
 const reviewSchema = new mongoose.Schema({
-  id: {
-    type: mongoose.Schema.Types.ObjectId,
-    default: mongoose.Types.ObjectId,
-  },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User', // nombre del modelo al que se hace referencia
