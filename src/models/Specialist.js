@@ -3,6 +3,7 @@ import { userSchema } from './User.js';
 import { monthlyScheduleSchema } from './MonthlySchedule.js';
 import { appointmentSchema } from './Appointment.js';
 import { reviewSchema } from './Review.js';
+import { timeSlotSchema } from './TimeSlot.js';
 
 const specialistSchema = new mongoose.Schema({
   ...userSchema.obj, // inherit user schema
@@ -15,6 +16,15 @@ const specialistSchema = new mongoose.Schema({
     enum: ['Hombre', 'Mujer', 'Mascota'],
   },
   monthlySchedule: [monthlyScheduleSchema],
+  weeklySchedule: {
+    Monday: [timeSlotSchema],
+    Tuesday: [timeSlotSchema],
+    Wednesday: [timeSlotSchema],
+    Thursday: [timeSlotSchema],
+    Friday: [timeSlotSchema],
+    Saturday: [timeSlotSchema],
+    Sunday: [timeSlotSchema]
+  },
   reviews: [reviewSchema],
   paymentOption: {
     type: String,
