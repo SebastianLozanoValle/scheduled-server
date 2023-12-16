@@ -149,16 +149,6 @@ export const typeDefs = gql`
         appointments: [AppointmentInput]!
     }
 
-    type MonthlySchedule {
-        month: String!
-        days: [Day]!
-    }
-
-    input MonthlyScheduleInput {
-        month: String!
-        days: [DayInput]!
-    }
-
     type Specialist {
         id: ID!
         username: String!
@@ -174,7 +164,6 @@ export const typeDefs = gql`
         active: Boolean!
         specialtys: [Specialty]
         world: World!
-        monthlySchedule: [MonthlySchedule]!
         weeklySchedule: WeeklySchedule!
         reviews: [Review]
         paymentOption: PaymentOption!
@@ -196,7 +185,6 @@ export const typeDefs = gql`
         active: Boolean
         specialtys: [Specialty]
         world: World!
-        monthlySchedule: [MonthlyScheduleInput]!
         weeklySchedule: WeeklyScheduleInput!
         reviews: [ReviewInput]
         paymentOption: PaymentOption!
@@ -216,7 +204,6 @@ export const typeDefs = gql`
         active: Boolean
         specialtys: [Specialty]
         world: World
-        monthlySchedule: [MonthlyScheduleInput]
         weeklySchedule: WeeklyScheduleInput
         reviews: [ReviewInput]
         paymentOption: PaymentOption

@@ -113,8 +113,7 @@ export const resolvers = {
         scheduleAppointment: async (_, { input }) => {
             const { specialistId, date, startTime, estimatedEndTime, clientId, subject, detail, value, status } = input;
         
-            // Extrae el mes y el día de la fecha
-            const { month, day } = getMonthAndDay(date);
+            // Extrae el día de la semana de la fecha
             const dayOfWeek = new Date(input.date).getDay();
         
             // Mapea los números de los días de la semana a los nombres de los días
@@ -134,62 +133,66 @@ export const resolvers = {
                 throw new Error("Cliente no encontrado");
             }
         
-            // Encuentra el horario del día específico en el mes
-            let monthlySchedule = specialist.monthlySchedule.find((ms) => ms.month === month);
+            // Usa el nombre del día para obtener el horario semanal correspondiente
+            const weeklySchedule = specialist.weeklySchedule[dayName];
         
-            // Si el calendario mensual no existe, créalo
-            if (!monthlySchedule) {
-                monthlySchedule = { month, days: [] };
-                specialist.monthlySchedule.push(monthlySchedule);
-            }
-        
-            let daySchedule = monthlySchedule.days.find((ds) => new Date(ds.date).getDate() === day);
-        
-            // Si el día no existe, créalo
-            if (!daySchedule) {
-                // Usa el nombre del día para obtener el horario semanal correspondiente
-                const weeklySchedule = specialist.weeklySchedule[dayName];
-        
-                daySchedule = { date: day, horariosDisponibles: weeklySchedule, appointments: [] };
-                monthlySchedule.days.push(daySchedule);
-            }
+            // throw new Error(`startTime: ${startTime}, estimatedEndTime: ${estimatedEndTime}`);
+            // throw new Error(`startTime: ${timeSlot.start}, estimatedEndTime: ${timeSlot.end}`);
+            // throw new Error(`timeSlot: ${timeSlot}`);
+
+            // if (!startTime || !estimatedEndTime || !timeSlot.start || !timeSlot.end || !existingAppointment.startTime || !existingAppointment.endTime) {
+            //     throw new Error("Uno de los valores de tiempo es undefined");
+            // }
         
             // Verifica si el nuevo horario de cita está dentro del rango de horarios disponibles
-            const isSlotAvailable = daySchedule.horariosDisponibles && daySchedule.horariosDisponibles.some(
+            // if (!startTime || !estimatedEndTime) {
+            //     throw new Error(` ${startTime}, ${estimatedEndTime}`);
+            // }
+            
+            const isSlotAvailable = weeklySchedule && weeklySchedule.some(
                 (timeSlot) => {
+
+                    // if (!timeSlot.start || !timeSlot.end) {
+                    //     throw new Error("timeSlot.start o timeSlot.end son undefined");
+                    // }
+            
                     const slotStart = convertTimeToMinutes(timeSlot.start);
                     const slotEnd = convertTimeToMinutes(timeSlot.end);
                     const appointmentStart = convertTimeToMinutes(startTime);
                     const appointmentEnd = convertTimeToMinutes(estimatedEndTime);
-        
+            
                     // Verificar si el nuevo horario está fuera de los horarios disponibles
                     return appointmentStart >= slotStart && appointmentEnd <= slotEnd;
                 }
             );
-        
+            
             if (!isSlotAvailable) {
-                const availableSlots = JSON.stringify(daySchedule.horariosDisponibles);
-                throw new Error(`El horario de cita especificado no está dentro del rango de horarios disponibles. Los horarios disponibles son: ${availableSlots}`);
+                throw new Error("El horario de la cita no está disponible");
             }
-        
-            // Verifica si la nueva cita se superpone con otras citas existentes
-            const isSlotOccupied = daySchedule.appointments && daySchedule.appointments.some(
+            
+            const isTimeOccupied = specialist.appointments.some(
                 (existingAppointment) => {
+                    if (!existingAppointment.startTime || !existingAppointment.estimatedEndTime || !existingAppointment.date) {
+                        throw new Error("existingAppointment.startTime, existingAppointment.endTime o existingAppointment.date son undefined");
+                    }
+            
                     const existingStart = convertTimeToMinutes(existingAppointment.startTime);
-                    const existingEnd = convertTimeToMinutes(existingAppointment.endTime);
-                    const newStart = convertTimeToMinutes(startTime);
-                    const newEnd = convertTimeToMinutes(estimatedEndTime);
-        
-                    return (
-                        (newStart >= existingStart && newStart < existingEnd) ||
-                        (newEnd > existingStart && newEnd <= existingEnd) ||
-                        (newStart <= existingStart && newEnd >= existingEnd)
-                    );
+                    const existingEnd = convertTimeToMinutes(existingAppointment.estimatedEndTime);
+                    const appointmentStart = convertTimeToMinutes(startTime);
+                    const appointmentEnd = convertTimeToMinutes(estimatedEndTime);
+            
+                    // Verificar si la fecha de la nueva cita es la misma que la de la cita existente
+                    const isSameDate = new Date(existingAppointment.date).toDateString() === new Date(date).toDateString();
+            
+                    // Verificar si el nuevo horario se superpone con una cita existente en la misma fecha
+                    return isSameDate && ((appointmentStart >= existingStart && appointmentStart < existingEnd) ||
+                           (appointmentEnd > existingStart && appointmentEnd <= existingEnd) ||
+                           (appointmentStart <= existingStart && appointmentEnd >= existingEnd));
                 }
             );
-        
-            if (isSlotOccupied) {
-                throw new Error("El horario de cita especificado se superpone con otra cita existente");
+            
+            if (isTimeOccupied) {
+                throw new Error("El horario de la cita ya está ocupado");
             }
         
             // Agrega la nueva cita
@@ -206,7 +209,8 @@ export const resolvers = {
             client.appointments.push(newAppointmentData);
             await client.save();
         
-            daySchedule.appointments.push(newAppointmentData);
+            // Agregar la cita a los appointments del especialista
+            specialist.appointments.push(newAppointmentData);
             await specialist.save();
         
             return newAppointmentData;

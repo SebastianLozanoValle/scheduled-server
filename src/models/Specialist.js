@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 import { userSchema } from './User.js';
-import { monthlyScheduleSchema } from './MonthlySchedule.js';
 import { appointmentSchema } from './Appointment.js';
 import { reviewSchema } from './Review.js';
 import { timeSlotSchema } from './TimeSlot.js';
@@ -15,7 +14,7 @@ const specialistSchema = new mongoose.Schema({
     type: String,
     enum: ['Hombre', 'Mujer', 'Mascota'],
   },
-  monthlySchedule: [monthlyScheduleSchema],
+  appointments: [appointmentSchema], // new appointments property
   weeklySchedule: {
     Monday: [timeSlotSchema],
     Tuesday: [timeSlotSchema],

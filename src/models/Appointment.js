@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 // Appointment Schema
 const appointmentSchema = new mongoose.Schema({
     date: {
-        type: String,
+        type: Date,
         required: true,
     },
     startTime: {
