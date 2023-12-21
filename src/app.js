@@ -35,8 +35,9 @@ const start = async() => {
         });
     });
 
-    app.listen(33402, () => {
-        console.log("Server is running on port 33402");
+    const port = process.env.PORT || 33402;
+    app.listen(port, () => {
+        console.log(`Server is running on port ${port}`);
     })
 }
 
