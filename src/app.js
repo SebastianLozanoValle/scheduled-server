@@ -6,7 +6,11 @@ import { resolvers } from "./resolvers.js";
 
 import { connectDB } from "./db.js";
 
+import cors from "cors";
+
 export const app = express();
+
+app.use(cors());
 
 connectDB();
 

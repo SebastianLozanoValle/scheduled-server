@@ -167,7 +167,7 @@ export const typeDefs = gql`
         weeklySchedule: WeeklySchedule!
         reviews: [Review]
         paymentOption: PaymentOption!
-        completedAppointments: [Appointment]
+        appointments: [Appointment]
         highlighted: Boolean!
     }
 
@@ -188,7 +188,7 @@ export const typeDefs = gql`
         weeklySchedule: WeeklyScheduleInput!
         reviews: [ReviewInput]
         paymentOption: PaymentOption!
-        completedAppointments: [AppointmentInput]
+        appointments: [AppointmentInput]
         highlighted: Boolean
     }
 
@@ -207,7 +207,7 @@ export const typeDefs = gql`
         weeklySchedule: WeeklyScheduleInput
         reviews: [ReviewInput]
         paymentOption: PaymentOption
-        completedAppointments: [AppointmentInput]
+        appointments: [AppointmentInput]
         highlighted: Boolean
     }
 
@@ -263,7 +263,7 @@ export const typeDefs = gql`
 
     type Query {
         specialistCount: Int!
-        findBySpecialtys(specialtys: [Specialty]): [Specialist]!
+        findSpecialists(specialtys: [Specialty]): [Specialist]!
         findSpecialistByName(name: String!): Specialist
         getClient(id: ID!): Client
         getClients: [Client]
@@ -280,5 +280,6 @@ export const typeDefs = gql`
         scheduleAppointment(input: AppointmentInput!): Appointment
         createClient(input: ClientInput!): Client
         deleteClient(id: ID!): Client
+        toggleSpecialistHighlight(id: ID!): Specialist
     }
 `;

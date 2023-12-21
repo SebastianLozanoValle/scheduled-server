@@ -18,7 +18,7 @@ const convertTimeToMinutes = (time) => {
 export const resolvers = {
     Query: {
         specialistCount: () => Specialist.countDocuments(),
-        findBySpecialtys: async (_, { specialtys }) => {
+        findSpecialists: async (_, { specialtys }) => {
             if (!specialtys || specialtys.length === 0) {
                 return Specialist.find();
             }
@@ -215,6 +215,15 @@ export const resolvers = {
         
             return newAppointmentData;
         },
+        toggleSpecialistHighlight: async (_, { id }) => {
+            const specialist = await Specialist.findById(id);
+            if (!specialist) {
+                throw new Error('Specialist not found');
+            }
+            specialist.highlighted = !specialist.highlighted;
+            await specialist.save();
+            return specialist;
+        },  
         // updateAddress: async (_, { id, address }) => {
         //     const specialist = await Specialist.findById(id);
         //     if (!specialist) {
