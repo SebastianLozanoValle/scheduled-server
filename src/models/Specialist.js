@@ -1,9 +1,3 @@
-import mongoose from 'mongoose';
-import { userSchema } from './User.js';
-import { appointmentSchema } from './Appointment.js';
-import { reviewSchema } from './Review.js';
-import { timeSlotSchema } from './TimeSlot.js';
-
 const specialistSchema = new mongoose.Schema({
   ...userSchema.obj, // inherit user schema
   specialtys:  {
@@ -33,6 +27,10 @@ const specialistSchema = new mongoose.Schema({
   highlighted: {
     type: Boolean,
     default: false,
+  },
+  serviceType: {
+    type: String,
+    enum: ['Domicilio', 'Casa', 'Mixto'],
   },
 });
 

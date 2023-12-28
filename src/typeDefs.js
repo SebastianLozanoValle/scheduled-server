@@ -69,6 +69,12 @@ export const typeDefs = gql`
         Mascota
     }
 
+    enum ServiceType {
+        Domicilio
+        Casa
+        Mixto
+    }
+
     enum PaymentOption {
         weekly
         biweekly
@@ -169,6 +175,7 @@ export const typeDefs = gql`
         paymentOption: PaymentOption!
         appointments: [Appointment]
         highlighted: Boolean!
+        serviceType: ServiceType!
     }
 
     input SpecialistInput {
@@ -190,6 +197,7 @@ export const typeDefs = gql`
         paymentOption: PaymentOption!
         appointments: [AppointmentInput]
         highlighted: Boolean
+        serviceType: ServiceType!
     }
 
     input UpdateSpecialistInput {
@@ -209,6 +217,7 @@ export const typeDefs = gql`
         paymentOption: PaymentOption
         appointments: [AppointmentInput]
         highlighted: Boolean
+        serviceType: ServiceType
     }
 
     type Client {
