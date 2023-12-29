@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
-import { userSchema } from './User';
-import { appointmentSchema } from './Appointment';
-import { reviewSchema } from './Review';
-import { timeSlotSchema } from './TimeSlot';
+import { userSchema } from './User.js';
+import { appointmentSchema } from './Appointment.js';
+import { reviewSchema } from './Review.js';
+import { timeSlotSchema } from './TimeSlot.js';
 
 const specialistSchema = new mongoose.Schema({
   ...userSchema.obj, // inherit user schema
