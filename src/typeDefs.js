@@ -276,6 +276,7 @@ export const typeDefs = gql`
         findSpecialistByName(name: String!): Specialist
         getClient(id: ID!): Client
         getClients: [Client]
+        me: User
     }
 
 
