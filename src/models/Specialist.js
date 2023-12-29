@@ -1,3 +1,5 @@
+import mongoose from 'mongoose';
+
 const specialistSchema = new mongoose.Schema({
   ...userSchema.obj, // inherit user schema
   specialtys:  {
