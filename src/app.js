@@ -22,7 +22,16 @@ const start = async() => {
 
     const apolloServer = new ApolloServer({
         typeDefs,
-        resolvers
+        resolvers,
+        context: async ({ req, res }) => {
+            const auth = req ? req.headers.authorization : null;
+            if (auth && auth.toLowerCase().startsWith("bearer ")) {
+                const token = auth.substring(7);
+                const { id } = jwt.verify(token, JWT_SECRET);
+                const currentUser = await User.findById(id)
+                return { currentUser };
+            }
+        }
     });
 
     await apolloServer.start();

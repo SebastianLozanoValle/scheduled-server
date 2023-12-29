@@ -2,6 +2,10 @@ import mongoose from "mongoose";
 import { Specialist } from "./models/Specialist.js";
 import { Appointment } from "./models/Appointment.js";
 import { Client } from "./models/Client.js";
+import { User } from "./models/User.js";
+import { UserInputError } from "apollo-server-express";
+
+const JWT_SECRET = 'NEVER_SHARE_THIS';
 
 const getMonthAndDay = (dateString) => {
     const date = new Date(dateString);
@@ -26,6 +30,10 @@ export const resolvers = {
             return Specialist.find({ specialtys: { $in: specialtys } });
         },
         findSpecialistByName: (_, { name }) => Specialist.findOne({ name }),
+        getClients: () => Client.find(),
+        me: (root, args, context) => {
+            return context.currentUser;
+        }
     },
 
     Mutation: {
@@ -223,7 +231,23 @@ export const resolvers = {
             specialist.highlighted = !specialist.highlighted;
             await specialist.save();
             return specialist;
-        },  
+        },
+        login: async (root,args) => {
+            const user = await User.findOne({username: args.username});
+            const email = await User.findOne({email: args.email});
+
+            if(!user || !email || args.password !== 'networdpassword'){
+                throw new UserInputError("Wrong Credentials");
+            }
+
+            const userForToken = {
+                username: user.username,
+                email: user.email,
+                id: user._id,
+            };
+
+            return { value: jwt.sign(userForToken, JWT_SECRET) };
+        }  
         // updateAddress: async (_, { id, address }) => {
         //     const specialist = await Specialist.findById(id);
         //     if (!specialist) {
