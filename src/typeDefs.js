@@ -270,6 +270,10 @@ export const typeDefs = gql`
         reviews: [ReviewInput]
     }
 
+    type AuthPayload {
+        value: String
+    }
+
     type Query {
         specialistCount: Int!
         findSpecialists(specialtys: [Specialty]): [Specialist]!
@@ -281,6 +285,7 @@ export const typeDefs = gql`
 
 
     type Mutation {
+        login(username: String!, password: String!): AuthPayload
         createSpecialist(input: SpecialistInput!): Specialist
         createAppointment(input: AppointmentInput!): Appointment
         updateSpecialist(id: ID!, input: UpdateSpecialistInput!): Specialist
