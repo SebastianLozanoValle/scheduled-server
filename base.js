@@ -53,7 +53,7 @@ const specialists = [
         "street": "Calle FrontEnd",
         "city": "Barcelona",
         "world": "dev",
-        "specialtys": ["REACT", "GO"],
+        "specialtys": ["REACT", "SPRING"],
         "monthlySchedule": [
             {
                 "month": "2023-12",

@@ -1,9 +1,11 @@
-import mongoose from "mongoose";
+import mongoose, { Error } from "mongoose";
 import { Specialist } from "./models/Specialist.js";
 import { Appointment } from "./models/Appointment.js";
 import { Client } from "./models/Client.js";
 import { User } from "./models/User.js";
 import { UserInputError } from "apollo-server-express";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 const JWT_SECRET = 'NEVER_SHARE_THIS';
 
@@ -19,6 +21,23 @@ const convertTimeToMinutes = (time) => {
     return hours * 60 + minutes;
 };
 
+const hashPassword = async (password) => {
+    const salt = await bcrypt.genSalt(10);
+    return await bcrypt.hash(password, salt);
+};
+
+const validatePasswords = async (currentPassword, newPassword) => {
+    if (!newPassword) {
+        throw new Error("Nueva clave no puede estar vacía");
+    }
+
+    if (currentPassword === newPassword) {
+        throw new Error("Nueva clave debe ser diferente a la clave actual");
+    }
+
+    return newPassword;
+};
+
 export const resolvers = {
     Query: {
         specialistCount: () => Specialist.countDocuments(),
@@ -31,17 +50,24 @@ export const resolvers = {
         },
         findSpecialistByName: (_, { name }) => Specialist.findOne({ name }),
         getClients: () => Client.find(),
-        me: (root, args, context) => {
+        me: async (root, args, context) => {
             return context.currentUser;
         }
     },
 
     Mutation: {
         createSpecialist: async (_, { input }) => {
-            const newSpecialist = await Specialist.create(input);
+            const hashedPassword = await hashPassword(input.password);
+            input.password = hashedPassword;
+            const newSpecialist = Specialist.create(input).catch(error => {
+                throw new UserInputError(error.message, {
+                    invalidArgs: { input }
+                })
+            });
             return newSpecialist;
         },
         createClient: async (_, { input }) => {
+            input.password = await hashPassword(input.password);
             const newClient = await Client.create(input);
             return newClient;
         },
@@ -49,53 +75,53 @@ export const resolvers = {
             // Buscar el especialista
             const specialist = await Specialist.findById(input.specialistId);
             if (!specialist) {
-              throw new Error('Specialist not found');
+                throw new Error('Specialist not found');
             }
-          
+
             // Buscar el cliente
             const client = await Client.findById(input.clientId);
             if (!client) {
-              throw new Error('Client not found');
+                throw new Error('Client not found');
             }
-          
+
             // Verificar si el especialista tiene horario para el día de la cita
             const dayOfWeek = new Date(input.date).getDay();
             const schedule = specialist.monthlySchedule.find(s => s.dayOfWeek === dayOfWeek);
             if (!schedule) {
-              throw new Error('Specialist does not work on this day');
+                throw new Error('Specialist does not work on this day');
             }
-          
+
             // Verificar si la cita está dentro del horario del especialista
             if (input.startTime < schedule.startTime || input.estimatedEndTime > schedule.endTime) {
-              throw new Error('Appointment is not within specialist working hours');
+                throw new Error('Appointment is not within specialist working hours');
             }
-          
+
             // Verificar si la cita se cruza con otras citas del especialista
             const overlappingSpecialistAppointment = await Appointment.findOne({
-              specialistId: input.specialistId,
-              date: input.date,
-              $or: [
-                { startTime: { $lt: input.estimatedEndTime, $gte: input.startTime } },
-                { estimatedEndTime: { $gt: input.startTime, $lte: input.estimatedEndTime } },
-              ],
+                specialistId: input.specialistId,
+                date: input.date,
+                $or: [
+                    { startTime: { $lt: input.estimatedEndTime, $gte: input.startTime } },
+                    { estimatedEndTime: { $gt: input.startTime, $lte: input.estimatedEndTime } },
+                ],
             });
             if (overlappingSpecialistAppointment) {
-              throw new Error('Appointment overlaps with another appointment of the specialist');
+                throw new Error('Appointment overlaps with another appointment of the specialist');
             }
-          
+
             // Verificar si la cita se cruza con otras citas del cliente
             const overlappingClientAppointment = await Appointment.findOne({
-              clientId: input.clientId,
-              date: input.date,
-              $or: [
-                { startTime: { $lt: input.estimatedEndTime, $gte: input.startTime } },
-                { estimatedEndTime: { $gt: input.startTime, $lte: input.estimatedEndTime } },
-              ],
+                clientId: input.clientId,
+                date: input.date,
+                $or: [
+                    { startTime: { $lt: input.estimatedEndTime, $gte: input.startTime } },
+                    { estimatedEndTime: { $gt: input.startTime, $lte: input.estimatedEndTime } },
+                ],
             });
             if (overlappingClientAppointment) {
-              throw new Error('Appointment overlaps with another appointment of the client');
+                throw new Error('Appointment overlaps with another appointment of the client');
             }
-          
+
             // Crear la cita
             const newAppointment = await Appointment.create(input);
             return newAppointment;
@@ -120,30 +146,30 @@ export const resolvers = {
         },
         scheduleAppointment: async (_, { input }) => {
             const { specialistId, date, startTime, estimatedEndTime, clientId, subject, detail, value, status } = input;
-        
+
             // Extrae el día de la semana de la fecha
             const dayOfWeek = new Date(input.date).getDay();
-        
+
             // Mapea los números de los días de la semana a los nombres de los días
             const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        
+
             // Obtén el nombre del día de la semana correspondiente
             const dayName = daysOfWeek[dayOfWeek];
-        
+
             const specialist = await Specialist.findById(specialistId);
             const client = await Client.findById(clientId);
-        
+
             if (!specialist) {
                 throw new Error("Especialista no encontrado");
             }
-        
+
             if (!client) {
                 throw new Error("Cliente no encontrado");
             }
-        
+
             // Usa el nombre del día para obtener el horario semanal correspondiente
             const weeklySchedule = specialist.weeklySchedule[dayName];
-        
+
             // throw new Error(`startTime: ${startTime}, estimatedEndTime: ${estimatedEndTime}`);
             // throw new Error(`startTime: ${timeSlot.start}, estimatedEndTime: ${timeSlot.end}`);
             // throw new Error(`timeSlot: ${timeSlot}`);
@@ -151,79 +177,81 @@ export const resolvers = {
             // if (!startTime || !estimatedEndTime || !timeSlot.start || !timeSlot.end || !existingAppointment.startTime || !existingAppointment.endTime) {
             //     throw new Error("Uno de los valores de tiempo es undefined");
             // }
-        
+
             // Verifica si el nuevo horario de cita está dentro del rango de horarios disponibles
             // if (!startTime || !estimatedEndTime) {
             //     throw new Error(` ${startTime}, ${estimatedEndTime}`);
             // }
-            
+
             const isSlotAvailable = weeklySchedule && weeklySchedule.some(
                 (timeSlot) => {
 
                     // if (!timeSlot.start || !timeSlot.end) {
                     //     throw new Error("timeSlot.start o timeSlot.end son undefined");
                     // }
-            
+
                     const slotStart = convertTimeToMinutes(timeSlot.start);
                     const slotEnd = convertTimeToMinutes(timeSlot.end);
                     const appointmentStart = convertTimeToMinutes(startTime);
                     const appointmentEnd = convertTimeToMinutes(estimatedEndTime);
-            
+
                     // Verificar si el nuevo horario está fuera de los horarios disponibles
                     return appointmentStart >= slotStart && appointmentEnd <= slotEnd;
                 }
             );
-            
+
             if (!isSlotAvailable) {
                 throw new Error("El horario de la cita no está disponible");
             }
-            
+
             const isTimeOccupied = specialist.appointments.some(
                 (existingAppointment) => {
                     if (!existingAppointment.startTime || !existingAppointment.estimatedEndTime || !existingAppointment.date) {
                         throw new Error("existingAppointment.startTime, existingAppointment.endTime o existingAppointment.date son undefined");
                     }
-            
+
                     const existingStart = convertTimeToMinutes(existingAppointment.startTime);
                     const existingEnd = convertTimeToMinutes(existingAppointment.estimatedEndTime);
                     const appointmentStart = convertTimeToMinutes(startTime);
                     const appointmentEnd = convertTimeToMinutes(estimatedEndTime);
-            
+
                     // Verificar si la fecha de la nueva cita es la misma que la de la cita existente
                     const isSameDate = new Date(existingAppointment.date).toDateString() === new Date(date).toDateString();
-            
+
                     // Verificar si el nuevo horario se superpone con una cita existente en la misma fecha
                     return isSameDate && ((appointmentStart >= existingStart && appointmentStart < existingEnd) ||
-                           (appointmentEnd > existingStart && appointmentEnd <= existingEnd) ||
-                           (appointmentStart <= existingStart && appointmentEnd >= existingEnd));
+                        (appointmentEnd > existingStart && appointmentEnd <= existingEnd) ||
+                        (appointmentStart <= existingStart && appointmentEnd >= existingEnd));
                 }
             );
-            
+
             if (isTimeOccupied) {
                 throw new Error("El horario de la cita ya está ocupado");
             }
-        
+
             // Agrega la nueva cita
             const newAppointmentData = new Appointment({
                 id: new mongoose.Types.ObjectId(),
                 ...input,
                 duration: convertTimeToMinutes(estimatedEndTime) - convertTimeToMinutes(startTime),
             });
-        
+
             // Guardar la nueva cita en la base de datos
             await newAppointmentData.save();
-        
+
             // Agregar la cita a los appointments del cliente
             client.appointments.push(newAppointmentData);
             await client.save();
-        
+
             // Agregar la cita a los appointments del especialista
             specialist.appointments.push(newAppointmentData);
             await specialist.save();
-        
+
             return newAppointmentData;
         },
-        toggleSpecialistHighlight: async (_, { id }) => {
+        toggleSpecialistHighlight: async (_, { id }, context) => {
+            const { currentUser } = context
+            if (!currentUser && (currentUser.role == "admin")) throw new AuthenticationError("not authenticated");
             const specialist = await Specialist.findById(id);
             if (!specialist) {
                 throw new Error('Specialist not found');
@@ -232,22 +260,34 @@ export const resolvers = {
             await specialist.save();
             return specialist;
         },
-        login: async (root,args) => {
-            const user = await User.findOne({username: args.username});
-            const email = await User.findOne({email: args.email});
+        login: async (root, args) => {
+            let user = await Specialist.findOne({ username: args.username });
 
-            if(!user || !email || args.password !== 'networdpassword'){
-                throw new UserInputError("Wrong Credentials");
+            if (!user) {
+                user = await Client.findOne({ username: args.username });
+                if (!user) {
+                    user = await User.findOne({ username: args.username });
+                    if (!user) {
+                        throw new UserInputError("usuario no encontrado");
+                    }
+                }
+            }
+
+            const passwordCorrect = user === null
+                ? false
+                : await bcrypt.compare(args.password, user.password);
+
+            if (!passwordCorrect) {
+                throw new UserInputError("Credenciales erroneas");
             }
 
             const userForToken = {
                 username: user.username,
-                email: user.email,
                 id: user._id,
             };
 
             return { value: jwt.sign(userForToken, JWT_SECRET) };
-        }  
+        }
         // updateAddress: async (_, { id, address }) => {
         //     const specialist = await Specialist.findById(id);
         //     if (!specialist) {
