@@ -12,7 +12,7 @@ import jwt from 'jsonwebtoken'
 import { Specialist } from "./models/Specialist.js";
 import { User } from "./models/User.js";
 
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { Client } from "./models/Client.js";
 
 const hashPassword = async (password) => {

@@ -4,7 +4,7 @@ import { Appointment } from "./models/Appointment.js";
 import { Client } from "./models/Client.js";
 import { User } from "./models/User.js";
 import { UserInputError } from "apollo-server-express";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
 const JWT_SECRET = 'NEVER_SHARE_THIS';
