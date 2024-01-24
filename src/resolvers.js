@@ -1,4 +1,4 @@
-import mongoose, { Error } from "mongoose";
+ import mongoose, { Error } from "mongoose";
 import { Specialist } from "./models/Specialist.js";
 import { Appointment } from "./models/Appointment.js";
 import { Client } from "./models/Client.js";
@@ -268,7 +268,7 @@ export const resolvers = {
         },
         toggleSpecialistHighlight: async (_, { id }, context) => {
             const { currentUser } = context
-            if (!currentUser && (!currentUser.role == "admin")) throw new AuthenticationError("not authenticated");
+            if (!currentUser && !(currentUser.role == "admin")) throw new AuthenticationError("not authenticated");
             const specialist = await Specialist.findById(id);
             if (!specialist) {
                 throw new Error('Specialist not found');
