@@ -49,6 +49,23 @@ export const resolvers = {
             return Specialist.find({ specialtys: { $in: specialtys } });
         },
         findSpecialistByName: (_, { name }) => Specialist.findOne({ name }),
+        getSpecialist: async (root, args, context) => {
+            // args.id contiene el ID del especialista que se quiere obtener
+            const specialist = await Specialist.findById(args.id);
+            if (!specialist) {
+                throw new Error('Specialist not found');
+            }
+            return specialist;
+        },
+        
+        getClient: async (root, args, context) => {
+            // args.id contiene el ID del cliente que se quiere obtener
+            const client = await Client.findById(args.id);
+            if (!client) {
+                throw new Error('Client not found');
+            }
+            return client;
+        },
         getClients: () => Client.find(),
         me: async (root, args, context) => {
             return context.currentUser;
@@ -251,7 +268,7 @@ export const resolvers = {
         },
         toggleSpecialistHighlight: async (_, { id }, context) => {
             const { currentUser } = context
-            if (!currentUser && (currentUser.role == "admin")) throw new AuthenticationError("not authenticated");
+            if (!currentUser && (!currentUser.role == "admin")) throw new AuthenticationError("not authenticated");
             const specialist = await Specialist.findById(id);
             if (!specialist) {
                 throw new Error('Specialist not found');

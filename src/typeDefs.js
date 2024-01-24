@@ -278,6 +278,7 @@ export const typeDefs = gql`
         specialistCount: Int!
         findSpecialists(specialtys: [Specialty]): [Specialist]!
         findSpecialistByName(name: String!): Specialist
+        getSpecialist(id: ID!): Specialist
         getClient(id: ID!): Client
         getClients: [Client]
         me: User
