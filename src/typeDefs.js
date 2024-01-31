@@ -2,6 +2,49 @@ import { gql } from "apollo-server-express";
 
 export const typeDefs = gql`
     # GraphQL typedefs
+    type Checkout {
+        link: String!
+    }
+
+    type Invoice {
+        id: ID!
+        merchant: String!
+        email: String!
+        country: Int!
+        order: String!
+        money: String!
+        amount: String!
+        description: String!
+        language: String!
+        expiration: String!
+        iva: String!
+        user_name: String!
+        userId: User!
+        specialistId: Specialist!
+        date: String!
+        status: String!
+        checksum: String!
+    }
+
+    input InvoiceInput {
+        merchant: String!
+        email: String!
+        country: Int!
+        order: String
+        money: String!
+        amount: String!
+        description: String!
+        language: String!
+        expiration: String!
+        iva: String!
+        user_name: String!
+        userId: ID
+        specialistId: ID
+        date: String
+        status: String
+        checksum: String
+    }
+
     type User {
         id: ID!
         username: String!
@@ -297,5 +340,6 @@ export const typeDefs = gql`
         createClient(input: ClientInput!): Client
         deleteClient(id: ID!): Client
         toggleSpecialistHighlight(id: ID!): Specialist
+        createInvoice(invoice: InvoiceInput!): Checkout
     }
 `;

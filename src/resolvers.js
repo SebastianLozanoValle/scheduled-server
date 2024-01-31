@@ -1,11 +1,15 @@
- import mongoose, { Error } from "mongoose";
+import mongoose, { Error } from "mongoose";
 import { Specialist } from "./models/Specialist.js";
 import { Appointment } from "./models/Appointment.js";
 import { Client } from "./models/Client.js";
 import { User } from "./models/User.js";
-import { UserInputError } from "apollo-server-express";
+import { AuthenticationError, UserInputError } from "apollo-server-express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import fetch from "node-fetch";
+import { Invoice } from "./models/Invoice.js";
+import crypto from "crypto";
+import { v4 as uuidv4 } from "uuid";
 
 const JWT_SECRET = 'NEVER_SHARE_THIS';
 
@@ -268,9 +272,10 @@ export const resolvers = {
         },
         toggleSpecialistHighlight: async (_, { id }, context) => {
             const { currentUser } = context
-            if (!currentUser && !(currentUser.role == "admin")) throw new AuthenticationError("not authenticated");
-            const specialist = await Specialist.findById(id);
-            if (!specialist) {
+            if (!currentUser) throw new AuthenticationError("not authenticated");
+            if (currentUser.role !== 'admin') throw new AuthenticationError('solo para admins')
+            const specialist = currentUser.role == 'admin'? await Specialist.findById(id) : null
+            if (specialist == null) {
                 throw new Error('Specialist not found');
             }
             specialist.highlighted = !specialist.highlighted;
@@ -304,7 +309,44 @@ export const resolvers = {
             };
 
             return { value: jwt.sign(userForToken, JWT_SECRET) };
-        }
+        },
+        createInvoice: async (_, { invoice }) => {
+            
+            // Generar un ID único para el campo 'order' y eliminar los guiones
+            invoice.order = uuidv4().replace(/-/g, '');
+            const FIXED_HASH = '0dab1a0cd67bcf598fbbcacd59200199ebb0f3081d3a5d53187354d17b715fb83f15ffaa2578b388ba9fc15f7e25ecea327e10c725bc3a55742b3ff9db5209f3';
+            
+            // Generar el checksum
+            const preHash = invoice.email + invoice.country + invoice.order + invoice.money + invoice.amount + FIXED_HASH;
+            const checksum = crypto.createHash('sha512').update(preHash).digest('hex');
+            
+            // Agregar el checksum al objeto invoice
+            invoice.checksum = checksum;
+            
+            const myHeaders = {
+                "Content-Type": "application/json"
+            };
+            
+            const requestOptions = {
+                method: 'POST',
+                headers: myHeaders,
+                body: JSON.stringify(invoice),
+                redirect: 'follow'
+            };
+            
+            const response = await fetch("https://api-test.payvalida.com/api/v3/porders", requestOptions);
+            const result = await response.json();
+            
+            if (result.CODE === "0000") {
+                // Crear una nueva factura y guardarla en la base de datos
+                const newInvoice = new Invoice(invoice);
+                await newInvoice.save();
+
+                return { link: result.DATA.checkout };
+            } else {
+                throw new Error(`Failed to create invoice: ${result.DESC}`);
+            }
+        },
         // updateAddress: async (_, { id, address }) => {
         //     const specialist = await Specialist.findById(id);
         //     if (!specialist) {

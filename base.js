@@ -296,20 +296,20 @@ const resolvers = {
                 const [hours, minutes] = time.split(':').map(Number);
                 return hours * 100 + minutes;
             };
-            
-            const isSlotAvailable = [{ "start": "09:00", "end": "09:30" },{ "start": "12:30", "end": "14:30" },{ "start": "18:30", "end": "20:00" }].some(
+
+            const isSlotAvailable = [{ "start": "09:00", "end": "09:30" }, { "start": "12:30", "end": "14:30" }, { "start": "18:30", "end": "20:00" }].some(
                 (timeSlot) => {
                     const slotStart = convertTimeToMinutes(timeSlot.start);
                     const slotEnd = convertTimeToMinutes(timeSlot.end);
                     const appointmentStart = convertTimeToMinutes(newAppointment.startTime);
                     const appointmentEnd = convertTimeToMinutes(newAppointment.endTime);
-            
+
                     // Verificar si el nuevo horario está fuera de los horarios disponibles
                     return appointmentStart >= slotStart && appointmentEnd <= slotEnd;
                 }
             );
-            
-            
+
+
 
             if (!isSlotAvailable) {
                 throw new Error("El horario de cita especificado no está dentro del rango de horarios disponibles");
@@ -369,3 +369,38 @@ const PORT = 4000;
 server.listen(PORT).then(({ url }) => {
     console.log(`Server ready at ${url}`);
 });
+
+
+
+
+
+// import hashlib
+
+// # Valores de la solicitud
+// merchant = "quruxcrsandbox"
+// email = "someone@example.com"
+// country = "314"
+// order = "9999"
+// money = "CRC"
+// amount = "10500"
+// description = "Orden de prueba"
+// method = ""
+// language = "es"
+// recurrent = True
+// expiration = "27/12/2020"
+// iva = "0"
+// user_di = "94320444"
+// user_type_di = "CC"
+// user_name = "NombreUsuario"
+// redirect_timeout = "300000"
+
+// # FIXED_HASH proporcionado
+// FIXED_HASH = "0dab1a0cd67bcf598fbbcacd59200199ebb0f3081d3a5d53187354d17b715fb83f15ffaa2578b388ba9fc15f7e25ecea327e10c725bc3a55742b3ff9db5209f3"
+
+// # Concatenar los valores relevantes
+// concatenated_string = email + str(country) + order + money + amount + FIXED_HASH
+
+// # Calcular el hash SHA512
+// checksum = hashlib.sha512(concatenated_string.encode()).hexdigest()
+
+// print("Checksum generado:", checksum)
