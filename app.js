@@ -1,19 +1,19 @@
 import express from "express";
-import { ApolloError, ApolloServer } from "apollo-server-express";
+import { ApolloServer } from "apollo-server-express";
 
-import { typeDefs } from "./typeDefs.js";
-import { resolvers } from "./resolvers.js";
+import { typeDefs } from "./src/typeDefs.js";
+import { resolvers } from "./src/resolvers.js";
 
-import { connectDB } from "./db.js";
+import { connectDB } from "./src/db.js";
 
 import cors from "cors";
 
 import jwt from 'jsonwebtoken'
-import { Specialist } from "./models/Specialist.js";
-import { User } from "./models/User.js";
+import { Specialist } from "./src/models/Specialist.js";
+import { User } from "./src/models/User.js";
 
 import bcrypt from 'bcryptjs';
-import { Client } from "./models/Client.js";
+import { Client } from "./src/models/Client.js";
 
 const hashPassword = async (password) => {
     const salt = await bcrypt.genSalt(10);

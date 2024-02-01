@@ -2,14 +2,14 @@
   "name": "graphql-server",
   "version": "1.0.0",
   "description": "GraphQL Server",
-  "main": "src/app.js",
+  "main": "app.js",
   "engines": {
     "node": "18.x"
   },
   "type": "module",
   "scripts": {
-    "start": "node src/app.js",
-    "dev": "nodemon src/app.js"
+    "start": "node app.js",
+    "dev": "nodemon app.js"
   },
   "dependencies": {
     "apollo-server-express": "^3.13.0",
