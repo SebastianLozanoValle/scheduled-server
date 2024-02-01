@@ -4,7 +4,7 @@
   "description": "GraphQL Server",
   "main": "src/app.js",
   "engines": {
-    "node": "14.x"
+    "node": "20.x"
   },
   "type": "module",
   "scripts": {
