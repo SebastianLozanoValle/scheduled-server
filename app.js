@@ -24,6 +24,15 @@ const JWT_SECRET = 'NEVER_SHARE_THIS'
 
 export const app = express();
 
+// Middleware para configurar CORS
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', 'https://vermillion-meringue-1bb547.netlify.app');
+    res.setHeader('Access-Control-Allow-Origin', 'localhost:5173');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    next();
+});
+
 app.use(cors());
 
 connectDB();
@@ -68,10 +77,10 @@ const start = async () => {
     const port = process.env.PORT || 33402;
     app.listen(port, async () => {
         console.log(`Server is running on port ${port}`);
-    
+
         // Busca un usuario con el rol de admin
         const adminUser = await User.findOne({ role: 'admin' });
-    
+
         // Si no existe un usuario con el rol de admin...
         if (!adminUser) {
             // Crea un nuevo usuario con el rol de admin
@@ -88,10 +97,10 @@ const start = async () => {
                 role: 'admin',
                 active: true
             });
-        
+
             // Guarda el nuevo usuario en la base de datos
             await newAdminUser.save();
-        
+
             console.log('Admin user created');
         }
     })
