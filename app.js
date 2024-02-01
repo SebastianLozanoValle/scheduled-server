@@ -26,8 +26,7 @@ export const app = express();
 
 // Middleware para configurar CORS
 app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', 'https://vermillion-meringue-1bb547.netlify.app');
-    res.setHeader('Access-Control-Allow-Origin', 'localhost:5173');
+    res.setHeader('Access-Control-Allow-Origin', 'https://vermillion-meringue-1bb547.netlify.app, localhost:5173');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     next();
