@@ -325,6 +325,7 @@ export const typeDefs = gql`
         getClient(id: ID!): Client
         getClients: [Client]
         me: User
+        isSlotAvailable(input: AppointmentInput!): Boolean!
     }
 
 

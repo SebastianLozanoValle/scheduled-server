@@ -61,7 +61,7 @@ export const resolvers = {
             }
             return specialist;
         },
-        
+
         getClient: async (root, args, context) => {
             // args.id contiene el ID del cliente que se quiere obtener
             const client = await Client.findById(args.id);
@@ -73,7 +73,42 @@ export const resolvers = {
         getClients: () => Client.find(),
         me: async (root, args, context) => {
             return context.currentUser;
-        }
+        },
+        isSlotAvailable: async (_, { input }) => {
+            const { specialistId, date, startTime, estimatedEndTime } = input;
+
+            // Extrae el día de la semana de la fecha
+            const dayOfWeek = new Date(date).getDay();
+
+            // Mapea los números de los días de la semana a los nombres de los días
+            const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+            // Obtén el nombre del día de la semana correspondiente
+            const dayName = daysOfWeek[dayOfWeek];
+
+            const specialist = await Specialist.findById(specialistId);
+
+            if (!specialist) {
+                throw new Error("Especialista no encontrado");
+            }
+
+            // Usa el nombre del día para obtener el horario semanal correspondiente
+            const weeklySchedule = specialist.weeklySchedule[dayName];
+
+            const isSlotAvailable = weeklySchedule && weeklySchedule.some(
+                (timeSlot) => {
+                    const slotStart = convertTimeToMinutes(timeSlot.start);
+                    const slotEnd = convertTimeToMinutes(timeSlot.end);
+                    const appointmentStart = convertTimeToMinutes(startTime);
+                    const appointmentEnd = convertTimeToMinutes(estimatedEndTime);
+
+                    // Verificar si el nuevo horario está fuera de los horarios disponibles
+                    return appointmentStart >= slotStart && appointmentEnd <= slotEnd;
+                }
+            );
+
+            return isSlotAvailable;
+        },
     },
 
     Mutation: {
@@ -274,7 +309,7 @@ export const resolvers = {
             const { currentUser } = context
             if (!currentUser) throw new AuthenticationError("not authenticated");
             if (currentUser.role !== 'admin') throw new AuthenticationError('solo para admins')
-            const specialist = currentUser.role == 'admin'? await Specialist.findById(id) : null
+            const specialist = currentUser.role == 'admin' ? await Specialist.findById(id) : null
             if (specialist == null) {
                 throw new Error('Specialist not found');
             }
@@ -311,32 +346,32 @@ export const resolvers = {
             return { value: jwt.sign(userForToken, JWT_SECRET) };
         },
         createInvoice: async (_, { invoice }) => {
-            
+
             // Generar un ID único para el campo 'order' y eliminar los guiones
             invoice.order = uuidv4().replace(/-/g, '');
             const FIXED_HASH = '0dab1a0cd67bcf598fbbcacd59200199ebb0f3081d3a5d53187354d17b715fb83f15ffaa2578b388ba9fc15f7e25ecea327e10c725bc3a55742b3ff9db5209f3';
-            
+
             // Generar el checksum
             const preHash = invoice.email + invoice.country + invoice.order + invoice.money + invoice.amount + FIXED_HASH;
             const checksum = crypto.createHash('sha512').update(preHash).digest('hex');
-            
+
             // Agregar el checksum al objeto invoice
             invoice.checksum = checksum;
-            
+
             const myHeaders = {
                 "Content-Type": "application/json"
             };
-            
+
             const requestOptions = {
                 method: 'POST',
                 headers: myHeaders,
                 body: JSON.stringify(invoice),
                 redirect: 'follow'
             };
-            
+
             const response = await fetch("https://api-test.payvalida.com/api/v3/porders", requestOptions);
             const result = await response.json();
-            
+
             if (result.CODE === "0000") {
                 // Crear una nueva factura y guardarla en la base de datos
                 const newInvoice = new Invoice(invoice);
