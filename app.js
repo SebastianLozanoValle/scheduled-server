@@ -60,7 +60,8 @@ const start = async () => {
                 return { currentUser };
             }
             return {};
-        }
+        },
+        connectToDevTools: true
     });
 
     await apolloServer.start();
