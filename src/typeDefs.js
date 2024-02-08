@@ -136,6 +136,14 @@ export const typeDefs = gql`
         status: Status
     }
 
+    input SlotInput {
+        date: String!
+        startTime: String!
+        estimatedEndTime: String!
+        clientId: ID!
+        specialistId: ID!
+    }
+
     type Review {
         id: ID!
         userId: ID!
@@ -325,7 +333,7 @@ export const typeDefs = gql`
         getClient(id: ID!): Client
         getClients: [Client]
         me: User
-        isSlotAvailable(input: AppointmentInput!): Boolean!
+        isSlotAvailable(input: SlotInput!): Boolean!
     }
 
 
