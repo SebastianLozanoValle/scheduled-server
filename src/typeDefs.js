@@ -140,7 +140,7 @@ export const typeDefs = gql`
         date: String!
         startTime: String!
         estimatedEndTime: String!
-        clientId: ID!
+        clientId: ID
         specialistId: ID!
     }
 
