@@ -333,7 +333,6 @@ export const typeDefs = gql`
         getClient(id: ID!): Client
         getClients: [Client]
         me: User
-        isSlotAvailable(input: SlotInput!): Boolean!
     }
 
 
@@ -350,5 +349,6 @@ export const typeDefs = gql`
         deleteClient(id: ID!): Client
         toggleSpecialistHighlight(id: ID!): Specialist
         createInvoice(invoice: InvoiceInput!): Checkout
+        isSlotAvailable(input: SlotInput!): Boolean!
     }
 `;

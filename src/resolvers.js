@@ -74,41 +74,6 @@ export const resolvers = {
         me: async (root, args, context) => {
             return context.currentUser;
         },
-        isSlotAvailable: async (_, { input }) => {
-            const { specialistId, date, startTime, estimatedEndTime } = input;
-
-            // Extrae el día de la semana de la fecha
-            const dayOfWeek = new Date(date).getDay();
-
-            // Mapea los números de los días de la semana a los nombres de los días
-            const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-            // Obtén el nombre del día de la semana correspondiente
-            const dayName = daysOfWeek[dayOfWeek];
-
-            const specialist = await Specialist.findById(specialistId);
-
-            if (!specialist) {
-                throw new Error("Especialista no encontrado");
-            }
-
-            // Usa el nombre del día para obtener el horario semanal correspondiente
-            const weeklySchedule = specialist.weeklySchedule[dayName];
-
-            const isSlotAvailable = weeklySchedule && weeklySchedule.some(
-                (timeSlot) => {
-                    const slotStart = convertTimeToMinutes(timeSlot.start);
-                    const slotEnd = convertTimeToMinutes(timeSlot.end);
-                    const appointmentStart = convertTimeToMinutes(startTime);
-                    const appointmentEnd = convertTimeToMinutes(estimatedEndTime);
-
-                    // Verificar si el nuevo horario está fuera de los horarios disponibles
-                    return appointmentStart >= slotStart && appointmentEnd <= slotEnd;
-                }
-            );
-
-            return isSlotAvailable;
-        },
     },
 
     Mutation: {
@@ -304,6 +269,41 @@ export const resolvers = {
             await specialist.save();
 
             return newAppointmentData;
+        },
+        isSlotAvailable: async (_, { input }) => {
+            const { specialistId, date, startTime, estimatedEndTime } = input;
+
+            // Extrae el día de la semana de la fecha
+            const dayOfWeek = new Date(date).getDay();
+
+            // Mapea los números de los días de la semana a los nombres de los días
+            const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+            // Obtén el nombre del día de la semana correspondiente
+            const dayName = daysOfWeek[dayOfWeek];
+
+            const specialist = await Specialist.findById(specialistId);
+
+            if (!specialist) {
+                throw new Error("Especialista no encontrado");
+            }
+
+            // Usa el nombre del día para obtener el horario semanal correspondiente
+            const weeklySchedule = specialist.weeklySchedule[dayName];
+
+            const isSlotAvailable = weeklySchedule && weeklySchedule.some(
+                (timeSlot) => {
+                    const slotStart = convertTimeToMinutes(timeSlot.start);
+                    const slotEnd = convertTimeToMinutes(timeSlot.end);
+                    const appointmentStart = convertTimeToMinutes(startTime);
+                    const appointmentEnd = convertTimeToMinutes(estimatedEndTime);
+
+                    // Verificar si el nuevo horario está fuera de los horarios disponibles
+                    return appointmentStart >= slotStart && appointmentEnd <= slotEnd;
+                }
+            );
+
+            return isSlotAvailable;
         },
         toggleSpecialistHighlight: async (_, { id }, context) => {
             const { currentUser } = context
