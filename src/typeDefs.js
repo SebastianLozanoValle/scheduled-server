@@ -24,6 +24,7 @@ export const typeDefs = gql`
         date: String!
         status: String!
         checksum: String!
+        appointmentId: Appointment!
     }
 
     input InvoiceInput {
@@ -43,6 +44,7 @@ export const typeDefs = gql`
         date: String
         status: String
         checksum: String
+        appointmentId: ID!
     }
 
     type User {
@@ -91,6 +93,7 @@ export const typeDefs = gql`
         detail: String
         value: Float!
         status: Status!
+        serviceType: ServiceType!
     }
 
     enum Status {
@@ -114,7 +117,7 @@ export const typeDefs = gql`
 
     enum ServiceType {
         Domicilio
-        Casa
+        Presencial
         Mixto
     }
 
@@ -134,6 +137,12 @@ export const typeDefs = gql`
         detail: String
         value: Float!
         status: Status
+        serviceType: ServiceType!
+    }
+
+    type Slot {
+        isSlotAvailable: Boolean!
+        reason: String
     }
 
     input SlotInput {
@@ -142,6 +151,7 @@ export const typeDefs = gql`
         estimatedEndTime: String!
         clientId: ID
         specialistId: ID!
+        serviceType: ServiceType!
     }
 
     type Review {
@@ -301,8 +311,8 @@ export const typeDefs = gql`
         street: String!
         role: Role!
         active: Boolean
-        appointments: [AppointmentInput]!
-        favorites: [ID]!
+        appointments: [AppointmentInput]
+        favorites: [ID]
         reviews: [ReviewInput]
     }
 
@@ -349,6 +359,6 @@ export const typeDefs = gql`
         deleteClient(id: ID!): Client
         toggleSpecialistHighlight(id: ID!): Specialist
         createInvoice(invoice: InvoiceInput!): Checkout
-        isSlotAvailable(input: SlotInput!): Boolean!
+        isSlotAvailable(input: SlotInput!): Slot
     }
 `;

@@ -36,6 +36,10 @@ const appointmentSchema = new mongoose.Schema({
         enum: ['waiting', 'scheduled', 'pending', 'completed'],
         default: 'waiting',
     },
+    serviceType: {
+        type: String,
+        enum: ['Domicilio', 'Presencial', 'Mixto'],
+    },
 });
 
 // Model name: Appointment

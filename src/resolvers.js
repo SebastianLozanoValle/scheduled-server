@@ -92,61 +92,61 @@ export const resolvers = {
             const newClient = await Client.create(input);
             return newClient;
         },
-        createAppointment: async (_, { input }) => {
-            // Buscar el especialista
-            const specialist = await Specialist.findById(input.specialistId);
-            if (!specialist) {
-                throw new Error('Specialist not found');
-            }
+        // createAppointment: async (_, { input }) => {
+        //     // Buscar el especialista
+        //     const specialist = await Specialist.findById(input.specialistId);
+        //     if (!specialist) {
+        //         throw new Error('Specialist not found');
+        //     }
 
-            // Buscar el cliente
-            const client = await Client.findById(input.clientId);
-            if (!client) {
-                throw new Error('Client not found');
-            }
+        //     // Buscar el cliente
+        //     const client = await Client.findById(input.clientId);
+        //     if (!client) {
+        //         throw new Error('Client not found');
+        //     }
 
-            // Verificar si el especialista tiene horario para el día de la cita
-            const dayOfWeek = new Date(input.date).getDay();
-            const schedule = specialist.monthlySchedule.find(s => s.dayOfWeek === dayOfWeek);
-            if (!schedule) {
-                throw new Error('Specialist does not work on this day');
-            }
+        //     // Verificar si el especialista tiene horario para el día de la cita
+        //     const dayOfWeek = new Date(input.date).getDay();
+        //     const schedule = specialist.monthlySchedule.find(s => s.dayOfWeek === dayOfWeek);
+        //     if (!schedule) {
+        //         throw new Error('Specialist does not work on this day');
+        //     }
 
-            // Verificar si la cita está dentro del horario del especialista
-            if (input.startTime < schedule.startTime || input.estimatedEndTime > schedule.endTime) {
-                throw new Error('Appointment is not within specialist working hours');
-            }
+        //     // Verificar si la cita está dentro del horario del especialista
+        //     if (input.startTime < schedule.startTime || input.estimatedEndTime > schedule.endTime) {
+        //         throw new Error('Appointment is not within specialist working hours');
+        //     }
 
-            // Verificar si la cita se cruza con otras citas del especialista
-            const overlappingSpecialistAppointment = await Appointment.findOne({
-                specialistId: input.specialistId,
-                date: input.date,
-                $or: [
-                    { startTime: { $lt: input.estimatedEndTime, $gte: input.startTime } },
-                    { estimatedEndTime: { $gt: input.startTime, $lte: input.estimatedEndTime } },
-                ],
-            });
-            if (overlappingSpecialistAppointment) {
-                throw new Error('Appointment overlaps with another appointment of the specialist');
-            }
+        //     // Verificar si la cita se cruza con otras citas del especialista
+        //     const overlappingSpecialistAppointment = await Appointment.findOne({
+        //         specialistId: input.specialistId,
+        //         date: input.date,
+        //         $or: [
+        //             { startTime: { $lt: input.estimatedEndTime, $gte: input.startTime } },
+        //             { estimatedEndTime: { $gt: input.startTime, $lte: input.estimatedEndTime } },
+        //         ],
+        //     });
+        //     if (overlappingSpecialistAppointment) {
+        //         throw new Error('Appointment overlaps with another appointment of the specialist');
+        //     }
 
-            // Verificar si la cita se cruza con otras citas del cliente
-            const overlappingClientAppointment = await Appointment.findOne({
-                clientId: input.clientId,
-                date: input.date,
-                $or: [
-                    { startTime: { $lt: input.estimatedEndTime, $gte: input.startTime } },
-                    { estimatedEndTime: { $gt: input.startTime, $lte: input.estimatedEndTime } },
-                ],
-            });
-            if (overlappingClientAppointment) {
-                throw new Error('Appointment overlaps with another appointment of the client');
-            }
+        //     // Verificar si la cita se cruza con otras citas del cliente
+        //     const overlappingClientAppointment = await Appointment.findOne({
+        //         clientId: input.clientId,
+        //         date: input.date,
+        //         $or: [
+        //             { startTime: { $lt: input.estimatedEndTime, $gte: input.startTime } },
+        //             { estimatedEndTime: { $gt: input.startTime, $lte: input.estimatedEndTime } },
+        //         ],
+        //     });
+        //     if (overlappingClientAppointment) {
+        //         throw new Error('Appointment overlaps with another appointment of the client');
+        //     }
 
-            // Crear la cita
-            const newAppointment = await Appointment.create(input);
-            return newAppointment;
-        },
+        //     // Crear la cita
+        //     const newAppointment = await Appointment.create(input);
+        //     return newAppointment;
+        // },
         updateSpecialist: async (_, { id, input }) => {
             return Specialist.findByIdAndUpdate(id, input, { new: true });
         },
@@ -166,7 +166,9 @@ export const resolvers = {
             return specialist.save();
         },
         scheduleAppointment: async (_, { input }) => {
-            const { specialistId, date, startTime, estimatedEndTime, clientId, subject, detail, value, status } = input;
+            const { specialistId, date, startTime, estimatedEndTime, clientId, subject, detail, value, status, serviceType } = input;
+
+            
 
             // Extrae el día de la semana de la fecha
             const dayOfWeek = new Date(input.date).getDay();
@@ -179,6 +181,10 @@ export const resolvers = {
 
             const specialist = await Specialist.findById(specialistId);
             const client = await Client.findById(clientId);
+
+            if (specialist.serviceType != serviceType && specialist.serviceType != 'Mixto') {
+                throw new Error("Este especialista no ofrece este tipo de servicio");
+            }
 
             if (!specialist) {
                 throw new Error("Especialista no encontrado");
@@ -271,7 +277,7 @@ export const resolvers = {
             return newAppointmentData;
         },
         isSlotAvailable: async (_, { input }) => {
-            const { specialistId, date, startTime, estimatedEndTime } = input;
+            const { specialistId, date, startTime, estimatedEndTime, serviceType } = input;
 
             // Extrae el día de la semana de la fecha
             const dayOfWeek = new Date(date).getDay();
@@ -284,26 +290,36 @@ export const resolvers = {
 
             const specialist = await Specialist.findById(specialistId);
 
+            if (specialist.serviceType != serviceType && specialist.serviceType != 'Mixto') {
+                return { isSlotAvailable: false, reason: `Este especialista no ofrece este tipo de servicio` };
+            }
+
             if (!specialist) {
-                throw new Error("Especialista no encontrado");
+                return { isSlotAvailable: false, reason: `Especialista no encontrado` };
             }
 
             // Usa el nombre del día para obtener el horario semanal correspondiente
             const weeklySchedule = specialist.weeklySchedule[dayName];
 
-            const isSlotAvailable = weeklySchedule && weeklySchedule.some(
-                (timeSlot) => {
-                    const slotStart = convertTimeToMinutes(timeSlot.start);
-                    const slotEnd = convertTimeToMinutes(timeSlot.end);
-                    const appointmentStart = convertTimeToMinutes(startTime);
-                    const appointmentEnd = convertTimeToMinutes(estimatedEndTime);
+            if (!weeklySchedule) {
+                return { isSlotAvailable: false, reason: `El especialista no trabaja los ${dayName}` };
+            }
 
-                    // Verificar si el nuevo horario está fuera de los horarios disponibles
-                    return appointmentStart >= slotStart && appointmentEnd <= slotEnd;
-                }
-            );
+            const isSlotAvailable = weeklySchedule.some((timeSlot) => {
+                const slotStart = convertTimeToMinutes(timeSlot.start);
+                const slotEnd = convertTimeToMinutes(timeSlot.end);
+                const appointmentStart = convertTimeToMinutes(startTime);
+                const appointmentEnd = convertTimeToMinutes(estimatedEndTime);
 
-            return isSlotAvailable;
+                // Verificar si el nuevo horario está fuera de los horarios disponibles
+                return appointmentStart >= slotStart && appointmentEnd <= slotEnd;
+            });
+
+            if (!isSlotAvailable) {
+                return { isSlotAvailable: false, reason: 'El horario seleccionado no está disponible' };
+            }
+
+            return { isSlotAvailable: true };
         },
         toggleSpecialistHighlight: async (_, { id }, context) => {
             const { currentUser } = context
@@ -348,7 +364,7 @@ export const resolvers = {
         createInvoice: async (_, { invoice }) => {
 
             // Generar un ID único para el campo 'order' y eliminar los guiones
-            invoice.order = uuidv4().replace(/-/g, '');
+            invoice.order = invoice.appointmentId;
             const FIXED_HASH = '0dab1a0cd67bcf598fbbcacd59200199ebb0f3081d3a5d53187354d17b715fb83f15ffaa2578b388ba9fc15f7e25ecea327e10c725bc3a55742b3ff9db5209f3';
 
             // Generar el checksum
@@ -379,6 +395,7 @@ export const resolvers = {
 
                 return { link: result.DATA.checkout };
             } else {
+                await Appointment.findByIdAndDelete(invoice.appointmentId);
                 throw new Error(`Failed to create invoice: ${result.DESC}`);
             }
         },

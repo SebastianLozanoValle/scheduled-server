@@ -36,7 +36,7 @@ const specialistSchema = new mongoose.Schema({
   },
   serviceType: {
     type: String,
-    enum: ['Domicilio', 'Casa', 'Mixto'],
+    enum: ['Domicilio', 'Presencial', 'Mixto'],
   },
 });
 
