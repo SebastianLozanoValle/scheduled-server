@@ -66,6 +66,9 @@ const invoiceSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
+    link: {
+        type: String,
+    },
 });
 
 const Invoice = mongoose.model("Invoice", invoiceSchema);

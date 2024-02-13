@@ -6,6 +6,10 @@ export const typeDefs = gql`
         link: String!
     }
 
+    input CheckoutInput {
+        link: String!
+    }
+
     type Invoice {
         id: ID!
         merchant: String!
@@ -25,6 +29,7 @@ export const typeDefs = gql`
         status: String!
         checksum: String!
         appointmentId: Appointment!
+        link: Checkout!
     }
 
     input InvoiceInput {
@@ -45,6 +50,7 @@ export const typeDefs = gql`
         status: String
         checksum: String
         appointmentId: ID!
+        link: CheckoutInput
     }
 
     type User {
@@ -337,7 +343,7 @@ export const typeDefs = gql`
 
     type Query {
         specialistCount: Int!
-        findSpecialists(specialtys: [Specialty]): [Specialist]!
+        findSpecialists(specialtys: [Specialty], world: World, city: String, serviceType: ServiceType ): [Specialist]!
         findSpecialistByName(name: String!): Specialist
         getSpecialist(id: ID!): Specialist
         getClient(id: ID!): Client
@@ -353,6 +359,7 @@ export const typeDefs = gql`
         updateSpecialist(id: ID!, input: UpdateSpecialistInput!): Specialist
         updateClient(id: ID!, input: UpdateClientInput!): Client
         deleteSpecialist(id: ID!): Specialist
+        deleteAppointment(id: ID!): Appointment
         changeSpecialtys(name: String!, specialtys: [Specialty]): Specialist
         scheduleAppointment(input: AppointmentInput!): Appointment
         createClient(input: ClientInput!): Client

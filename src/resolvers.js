@@ -168,7 +168,7 @@ export const resolvers = {
         scheduleAppointment: async (_, { input }) => {
             const { specialistId, date, startTime, estimatedEndTime, clientId, subject, detail, value, status, serviceType } = input;
 
-            
+
 
             // Extrae el día de la semana de la fecha
             const dayOfWeek = new Date(input.date).getDay();
@@ -290,12 +290,12 @@ export const resolvers = {
 
             const specialist = await Specialist.findById(specialistId);
 
-            if (specialist.serviceType != serviceType && specialist.serviceType != 'Mixto') {
-                return { isSlotAvailable: false, reason: `Este especialista no ofrece este tipo de servicio` };
-            }
-
             if (!specialist) {
                 return { isSlotAvailable: false, reason: `Especialista no encontrado` };
+            }
+
+            if (specialist.serviceType != serviceType && specialist.serviceType != 'Mixto') {
+                return { isSlotAvailable: false, reason: `Este especialista no ofrece este tipo de servicio` };
             }
 
             // Usa el nombre del día para obtener el horario semanal correspondiente
@@ -317,6 +317,31 @@ export const resolvers = {
 
             if (!isSlotAvailable) {
                 return { isSlotAvailable: false, reason: 'El horario seleccionado no está disponible' };
+            }
+
+            const isTimeOccupied = specialist.appointments.some(
+                (existingAppointment) => {
+                    if (!existingAppointment.startTime || !existingAppointment.estimatedEndTime || !existingAppointment.date) {
+                        return { isSlotAvailable: false, reason: "existingAppointment.startTime, existingAppointment.endTime o existingAppointment.date son undefined" };
+                    }
+
+                    const existingStart = convertTimeToMinutes(existingAppointment.startTime);
+                    const existingEnd = convertTimeToMinutes(existingAppointment.estimatedEndTime);
+                    const appointmentStart = convertTimeToMinutes(startTime);
+                    const appointmentEnd = convertTimeToMinutes(estimatedEndTime);
+
+                    // Verificar si la fecha de la nueva cita es la misma que la de la cita existente
+                    const isSameDate = new Date(existingAppointment.date).toDateString() === new Date(date).toDateString();
+
+                    // Verificar si el nuevo horario se superpone con una cita existente en la misma fecha
+                    return isSameDate && ((appointmentStart >= existingStart && appointmentStart < existingEnd) ||
+                        (appointmentEnd > existingStart && appointmentEnd <= existingEnd) ||
+                        (appointmentStart <= existingStart && appointmentEnd >= existingEnd));
+                }
+            );
+
+            if (isTimeOccupied) {
+                return { isSlotAvailable: false, reason: "El horario de la cita ya está ocupado" };
             }
 
             return { isSlotAvailable: true };
@@ -362,43 +387,71 @@ export const resolvers = {
             return { value: jwt.sign(userForToken, JWT_SECRET) };
         },
         createInvoice: async (_, { invoice }) => {
+            try {
+                // Generar un ID único para el campo 'order' y eliminar los guiones
+                invoice.order = invoice.appointmentId;
+                const FIXED_HASH = '0dab1a0cd67bcf598fbbcacd59200199ebb0f3081d3a5d53187354d17b715fb83f15ffaa2578b388ba9fc15f7e25ecea327e10c725bc3a55742b3ff9db5209f3';
 
-            // Generar un ID único para el campo 'order' y eliminar los guiones
-            invoice.order = invoice.appointmentId;
-            const FIXED_HASH = '0dab1a0cd67bcf598fbbcacd59200199ebb0f3081d3a5d53187354d17b715fb83f15ffaa2578b388ba9fc15f7e25ecea327e10c725bc3a55742b3ff9db5209f3';
+                // Generar el checksum
+                const preHash = invoice.email + invoice.country + invoice.order + invoice.money + invoice.amount + FIXED_HASH;
+                const checksum = crypto.createHash('sha512').update(preHash).digest('hex');
 
-            // Generar el checksum
-            const preHash = invoice.email + invoice.country + invoice.order + invoice.money + invoice.amount + FIXED_HASH;
-            const checksum = crypto.createHash('sha512').update(preHash).digest('hex');
+                // Agregar el checksum al objeto invoice
+                invoice.checksum = checksum;
 
-            // Agregar el checksum al objeto invoice
-            invoice.checksum = checksum;
+                const myHeaders = {
+                    "Content-Type": "application/json"
+                };
 
-            const myHeaders = {
-                "Content-Type": "application/json"
-            };
+                const requestOptions = {
+                    method: 'POST',
+                    headers: myHeaders,
+                    body: JSON.stringify(invoice),
+                    redirect: 'follow'
+                };
 
-            const requestOptions = {
-                method: 'POST',
-                headers: myHeaders,
-                body: JSON.stringify(invoice),
-                redirect: 'follow'
-            };
+                const response = await fetch("https://api-test.payvalida.com/api/v3/porders", requestOptions);
+                const result = await response.json();
 
-            const response = await fetch("https://api-test.payvalida.com/api/v3/porders", requestOptions);
-            const result = await response.json();
+                if (result.CODE === "0000") {
+                    // Crear una nueva factura y guardarla en la base de datos
+                    invoice.link = result.DATA.checkout;
+                    const newInvoice = new Invoice(invoice);
+                    await newInvoice.save();
 
-            if (result.CODE === "0000") {
-                // Crear una nueva factura y guardarla en la base de datos
-                const newInvoice = new Invoice(invoice);
-                await newInvoice.save();
-
-                return { link: result.DATA.checkout };
-            } else {
+                    return { link: result.DATA.checkout };
+                } else {
+                    throw new Error(`Failed to create invoice: ${result.DESC}`);
+                }
+            } catch (error) {
                 await Appointment.findByIdAndDelete(invoice.appointmentId);
-                throw new Error(`Failed to create invoice: ${result.DESC}`);
+                await Specialist.updateOne(
+                    { _id: invoice.specialistId },
+                    { $pull: { appointments: { _id: invoice.appointmentId } } }
+                );
+                await Client.updateOne(
+                    { _id: invoice.clientId },
+                    { $pull: { appointments: { _id: invoice.appointmentId } } }
+                );
+                throw error;
             }
         },
+        deleteAppointment: async (_, { id }) => {
+            const appointment = await Appointment.findById(id);
+            if (!appointment) {
+                throw new Error('Appointment not found');
+            }
+            await Appointment.findByIdAndDelete(id);
+            await Specialist.updateOne(
+                { _id: appointment.specialistId },
+                { $pull: { appointments: { _id: id } } }
+            );
+            await Client.updateOne(
+                { _id: appointment.clientId },
+                { $pull: { appointments: { _id: id } } }
+            );
+            return appointment;
+        }
         // updateAddress: async (_, { id, address }) => {
         //     const specialist = await Specialist.findById(id);
         //     if (!specialist) {
