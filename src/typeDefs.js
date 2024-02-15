@@ -23,20 +23,18 @@ export const typeDefs = gql`
         expiration: String!
         iva: String!
         user_name: String!
-        userId: User!
+        clientId: Client!
         specialistId: Specialist!
         date: String!
         status: String!
         checksum: String!
-        appointmentId: Appointment!
-        link: Checkout!
+        link: String!
     }
 
     input InvoiceInput {
         merchant: String!
         email: String!
         country: Int!
-        order: String
         money: String!
         amount: String!
         description: String!
@@ -44,7 +42,7 @@ export const typeDefs = gql`
         expiration: String!
         iva: String!
         user_name: String!
-        userId: ID
+        clientId: ID
         specialistId: ID
         date: String
         status: String
@@ -100,6 +98,8 @@ export const typeDefs = gql`
         value: Float!
         status: Status!
         serviceType: ServiceType!
+        clientUsername: String!
+        specialistUsername: String!
     }
 
     enum Status {
@@ -348,6 +348,8 @@ export const typeDefs = gql`
         getSpecialist(id: ID!): Specialist
         getClient(id: ID!): Client
         getClients: [Client]
+        getAppointments: [Appointment]
+        getInvoices: [Invoice]
         me: User
     }
 

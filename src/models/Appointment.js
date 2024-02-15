@@ -18,9 +18,17 @@ const appointmentSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Client', // nombre del modelo al que se hace referencia
     },
+    clientUsername: {
+        type: String,
+        required: true,
+    },
     specialistId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Specialist', // nombre del modelo al que se hace referencia
+    },
+    specialistUsername: {
+        type: String,
+        required: true, 
     },
     subject: {
         type: String,

@@ -66,11 +66,13 @@ export const resolvers = {
             // args.id contiene el ID del cliente que se quiere obtener
             const client = await Client.findById(args.id);
             if (!client) {
-                throw new Error('Client not found');
+                throw new Error('Client not found', args.id);
             }
             return client;
         },
-        getClients: () => Client.find(),
+        getClients: async () => await Client.find(),
+        getAppointments: async () => await Appointment.find(),
+        getInvoices: async () => await Invoice.find(),
         me: async (root, args, context) => {
             return context.currentUser;
         },
@@ -194,6 +196,10 @@ export const resolvers = {
                 throw new Error("Cliente no encontrado");
             }
 
+            const specialistUsername = specialist.username
+
+            const clientUsername = client.username
+
             // Usa el nombre del día para obtener el horario semanal correspondiente
             const weeklySchedule = specialist.weeklySchedule[dayName];
 
@@ -262,6 +268,11 @@ export const resolvers = {
                 ...input,
                 duration: convertTimeToMinutes(estimatedEndTime) - convertTimeToMinutes(startTime),
             });
+
+            newAppointmentData.clientUsername = clientUsername
+            newAppointmentData.specialistUsername = specialistUsername
+            
+            
 
             // Guardar la nueva cita en la base de datos
             await newAppointmentData.save();
@@ -395,6 +406,22 @@ export const resolvers = {
                 // Generar el checksum
                 const preHash = invoice.email + invoice.country + invoice.order + invoice.money + invoice.amount + FIXED_HASH;
                 const checksum = crypto.createHash('sha512').update(preHash).digest('hex');
+
+                const specialist = await Specialist.findById(invoice.specialistId);
+                if (!specialist) {
+                    throw new Error("Especialista no encontrado");
+                }
+                delete specialist.appointments
+                delete specialist.password
+                invoice.specialistId = specialist
+
+                const client = await Client.findById(invoice.clientId);
+                if (!client) {
+                    throw new Error('Client not found', invoice.clientId);
+                }
+                delete client.appointments
+                delete client.password
+                invoice.clientId = client
 
                 // Agregar el checksum al objeto invoice
                 invoice.checksum = checksum;

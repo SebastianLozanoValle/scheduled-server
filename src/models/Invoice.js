@@ -1,4 +1,6 @@
 import mongoose from "mongoose";
+import { specialistSchema } from "./Specialist.js";
+import { clientSchema } from "./Client.js";
 
 const invoiceSchema = new mongoose.Schema({
     merchant: {
@@ -46,14 +48,8 @@ const invoiceSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User", // nombre del modelo al que se hace referencia
-    },
-    specialistId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Specialist", // nombre del modelo al que se hace referencia
-    },
+    clientId: clientSchema,
+    specialistId: specialistSchema,
     date: {
         type: Date,
         required: true,
