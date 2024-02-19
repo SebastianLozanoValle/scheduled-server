@@ -1,8 +1,9 @@
 import express from "express";
 import { ApolloServer } from "apollo-server-express";
 import multer from 'multer';
-import { fileURLToPath } from 'url';
-import path, { dirname } from 'path';
+// import { fileURLToPath } from 'url';
+// import path, { dirname } from 'path';
+import path from "path";
 import fs from 'fs';
 
 import { typeDefs } from "./src/typeDefs.js";
@@ -18,6 +19,7 @@ import { User } from "./src/models/User.js";
 
 import bcrypt from 'bcryptjs';
 import { Client } from "./src/models/Client.js";
+import { error } from "console";
 
 const hashPassword = async (password) => {
     const salt = await bcrypt.genSalt(10);
@@ -28,19 +30,19 @@ const JWT_SECRET = 'NEVER_SHARE_THIS'
 
 export const app = express();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = dirname(__filename);
 
 // Comprueba si la carpeta 'files' existe y la crea si no existe
-const dirPath = path.join(__dirname, 'files');
-if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath);
-}
-
+// const dirPath = path.join(__dirname, 'files');
+// if (!fs.existsSync(dirPath)) {
+//     fs.mkdirSync(dirPath);
+// }
+// throw new Error(`An error occurred with directory: ${dirPath}`);
 // Configuración de multer
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, dirPath) // Aquí especificas el directorio donde se guardarán los archivos
+        cb(null, './files') // Aquí especificas el directorio donde se guardarán los archivos
     },
     filename: (req, file, cb) => {
         cb(null, Date.now() + path.extname(file.originalname)) // Aquí puedes especificar el nombre del archivo
