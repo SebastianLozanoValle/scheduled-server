@@ -50,7 +50,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // Configuración de CORS
-const allowedOrigins = ['http://localhost:5173', 'https://vermillion-meringue-1bb547.netlify.app'];
+const allowedOrigins = ['http://localhost:5173', 'https://vermillion-meringue-1bb547.netlify.app', 'http://localhost:5173'];
 
 app.use(cors({
     origin: function (origin, callback) {
