@@ -1,9 +1,5 @@
 import express from "express";
 import { ApolloServer } from "apollo-server-express";
-import multer from 'multer';
-import { fileURLToPath } from 'url';
-import path, { dirname } from 'path';
-import fs from 'fs';
 
 import { typeDefs } from "./src/typeDefs.js";
 import { resolvers } from "./src/resolvers.js";
@@ -28,54 +24,20 @@ const JWT_SECRET = 'NEVER_SHARE_THIS'
 
 export const app = express();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Comprueba si la carpeta 'files' existe y la crea si no existe
-const dirPath = path.join(__dirname, 'files');
-if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath);
-}
-
-// Configuración de multer
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, dirPath) // Aquí especificas el directorio donde se guardarán los archivos
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname)) // Aquí puedes especificar el nombre del archivo
-    }
+// Middleware para configurar CORS
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', 'https://vermillion-meringue-1bb547.netlify.app, localhost:5173');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    next();
 });
 
-const upload = multer({ storage });
-
-// Configuración de CORS
-const allowedOrigins = ['http://localhost:5173', 'https://vermillion-meringue-1bb547.netlify.app', 'http://localhost:5173'];
-
-app.use(cors({
-    origin: function (origin, callback) {
-        // allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-        if (allowedOrigins.indexOf(origin) === -1) {
-            var msg = 'The CORS policy for this site does not ' +
-                'allow access from the specified Origin.';
-            return callback(new Error(msg), false);
-        }
-        return callback(null, true);
-    }
-}));
+app.use(cors());
 
 connectDB();
 
 app.get("/", (req, res) => {
     res.send("Hello World!");
-});
-
-// Endpoint para subir archivos
-app.post('/upload', upload.single('file'), (req, res) => {
-    // Aquí puedes manejar lo que sucede después de que el archivo se ha subido
-    // Por ejemplo, podrías guardar la URL del archivo en tu base de datos
-    res.json({ file: req.file });
 });
 
 const start = async () => {
