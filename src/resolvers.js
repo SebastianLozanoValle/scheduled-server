@@ -1,15 +1,14 @@
-import mongoose, { Error } from "mongoose";
-import { Specialist } from "./models/Specialist.js";
-import { Appointment } from "./models/Appointment.js";
-import { Client } from "./models/Client.js";
-import { User } from "./models/User.js";
-import { AuthenticationError, UserInputError } from "apollo-server-express";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
-import fetch from "node-fetch";
-import { Invoice } from "./models/Invoice.js";
-import crypto from "crypto";
-import { v4 as uuidv4 } from "uuid";
+const mongoose = require("mongoose");
+const { Specialist } = require("./models/Specialist.js");
+const { Appointment } = require("./models/Appointment.js");
+const { Client } = require("./models/Client.js");
+const { User } = require("./models/User.js");
+const { AuthenticationError, UserInputError } = require("apollo-server-express");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const fetch = require("node-fetch");
+const { Invoice } = require("./models/Invoice.js");
+const crypto = require("crypto");
 
 const JWT_SECRET = 'NEVER_SHARE_THIS';
 
@@ -42,7 +41,7 @@ const validatePasswords = async (currentPassword, newPassword) => {
     return newPassword;
 };
 
-export const resolvers = {
+const resolvers = {
     Query: {
         specialistCount: () => Specialist.countDocuments(),
         findSpecialists: async (_, { specialtys }) => {
@@ -452,3 +451,4 @@ export const resolvers = {
         // },
     },
 };
+module.exports = resolvers;

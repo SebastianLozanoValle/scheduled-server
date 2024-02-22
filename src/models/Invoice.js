@@ -1,6 +1,6 @@
-import mongoose from "mongoose";
-import { specialistSchema } from "./Specialist.js";
-import { clientSchema } from "./Client.js";
+const mongoose = require('mongoose');
+const { specialistSchema } = require("./Specialist.js");
+const { clientSchema } = require("./Client.js");
 
 const invoiceSchema = new mongoose.Schema({
     merchant: {
@@ -69,4 +69,4 @@ const invoiceSchema = new mongoose.Schema({
 
 const Invoice = mongoose.model("Invoice", invoiceSchema);
 
-export { Invoice, invoiceSchema };
+module.exports = { Invoice, invoiceSchema };

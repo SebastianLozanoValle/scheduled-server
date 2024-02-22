@@ -1,7 +1,7 @@
-import mongoose from 'mongoose';
-import { userSchema } from './User.js';
-import { appointmentSchema } from './Appointment.js';
-import { reviewSchema } from './Review.js';
+const mongoose = require('mongoose');
+const { userSchema } = require('./User.js');
+const { appointmentSchema } = require('./Appointment.js');
+const { reviewSchema } = require('./Review.js');
 
 const clientSchema = new mongoose.Schema({
   ...userSchema.obj, // inherit user schema
@@ -15,4 +15,4 @@ const clientSchema = new mongoose.Schema({
 
 const Client = mongoose.model('Client', clientSchema);
 
-export { Client, clientSchema };
+module.exports = { Client, clientSchema };

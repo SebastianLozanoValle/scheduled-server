@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
 const timeSlotSchema = new mongoose.Schema({
   start: {
@@ -13,4 +13,4 @@ const timeSlotSchema = new mongoose.Schema({
 
 const TimeSlot = mongoose.model('TimeSlot', timeSlotSchema);
 
-export { TimeSlot, timeSlotSchema };
+module.exports = { TimeSlot, timeSlotSchema };

@@ -1,8 +1,8 @@
-import mongoose from 'mongoose';
-import { userSchema } from './User.js';
-import { appointmentSchema } from './Appointment.js';
-import { reviewSchema } from './Review.js';
-import { timeSlotSchema } from './TimeSlot.js';
+const mongoose = require('mongoose');
+const { userSchema } = require('./User.js');
+const { appointmentSchema } = require('./Appointment.js');
+const { reviewSchema } = require('./Review.js');
+const { timeSlotSchema } = require('./TimeSlot.js');
 
 const specialistSchema = new mongoose.Schema({
   ...userSchema.obj, // inherit user schema
@@ -42,4 +42,4 @@ const specialistSchema = new mongoose.Schema({
 
 const Specialist = mongoose.model('Specialist', specialistSchema);
 
-export { Specialist, specialistSchema };
+module.exports = { Specialist, specialistSchema };

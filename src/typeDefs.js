@@ -1,6 +1,6 @@
-import { gql } from "apollo-server-express";
+const { gql } = require('apollo-server-express');
 
-export const typeDefs = gql`
+const typeDefs = gql`
     # GraphQL typedefs
     type Checkout {
         link: String!
@@ -371,3 +371,5 @@ export const typeDefs = gql`
         isSlotAvailable(input: SlotInput!): Slot
     }
 `;
+
+module.exports = typeDefs;
