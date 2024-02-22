@@ -25,7 +25,7 @@ const hashPassword = async (password) => {
 const JWT_SECRET = 'NEVER_SHARE_THIS'
 
 const app = express();
-module.exports = { app };
+module.exports = app;
 
 // const __filename = fileURLToPath(import.meta.url);
 // const __dirname = dirname(__filename);
