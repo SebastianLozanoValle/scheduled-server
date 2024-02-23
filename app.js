@@ -16,6 +16,7 @@ const { User } = require("./src/models/User.js");
 
 const bcrypt = require('bcryptjs');
 const { Client } = require("./src/models/Client.js");
+const { File } = require('./src/models/File.js');
 
 const hashPassword = async (password) => {
     const salt = await bcrypt.genSalt(10);
@@ -27,33 +28,16 @@ const JWT_SECRET = 'NEVER_SHARE_THIS'
 const app = express();
 module.exports = app;
 
-// const __filename = fileURLToPath(import.meta.url);
-// const __dirname = dirname(__filename);
-
-// Comprueba si la carpeta 'files' existe y la crea si no existe
-// const dirPath = path.join(__dirname, 'files');
-// if (!fs.existsSync(dirPath)) {
-//     fs.mkdirSync(dirPath);
-// }
-// throw new Error(`An error occurred with directory: ${dirPath}`);
-// Configuración de multer
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, './files') // Aquí especificas el directorio donde se guardarán los archivos
+    destination: function (req, file, cb) {
+        cb(null, './files')
     },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + path.extname(file.originalname)) // Aquí puedes especificar el nombre del archivo
+    filename: function (req, file, cb) {
+        cb(null, file.originalname);
     }
-});
+})
 
 const upload = multer({ storage });
-
-// app.use(function (req, res, next) {
-//     res.header("Access-Control-Allow-Origin", "*");
-//     res.header("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT");
-//     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
-//     next();
-// });
 
 connectDB();
 
@@ -86,6 +70,7 @@ const start = async () => {
 
     apolloServer.applyMiddleware({ app: app });
 
+
     app.use(cors());
 
     app.get("/", (req, res) => {
@@ -93,10 +78,27 @@ const start = async () => {
     });
 
     // Endpoint para subir archivos
-    app.post('/upload', upload.single('file'), (req, res) => {
-        // Aquí puedes manejar lo que sucede después de que el archivo se ha subido
-        // Por ejemplo, podrías guardar la URL del archivo en tu base de datos
-        res.json({ file: req.file });
+    app.post('/upload', upload.single('file'), async (req, res) => {
+        const absolutePath = path.resolve(req.file.path);
+
+        const newFile = new File({
+            filename: req.file.filename,
+            path: absolutePath,
+        });
+
+        const savedFile = await newFile.save();
+
+        res.json({ file: req.file, id: savedFile._id });
+    });
+
+    app.get('/files/:filename', async (req, res) => {
+        const file = await File.findOne({ filename: req.params.filename });
+
+        if (!file) {
+            return res.status(404).json({ error: 'File not found' });
+        }
+
+        res.sendFile(file.path);
     });
 
     app.use("*", (req, res) => {

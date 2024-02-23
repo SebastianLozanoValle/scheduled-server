@@ -11,7 +11,7 @@ const specialistSchema = new mongoose.Schema({
     enum: ['Peluqueria', 'Manicura', 'Pedicura'],
   },
   world:  {
-    type: String,
+    type: [String],
     enum: ['Hombre', 'Mujer', 'Mascota'],
   },
   appointments: [appointmentSchema], // new appointments property
@@ -36,7 +36,7 @@ const specialistSchema = new mongoose.Schema({
   },
   serviceType: {
     type: String,
-    enum: ['Domicilio', 'Presencial', 'Mixto'],
+    enum: ['Domicilio', 'Local', 'Mixto'],
   },
 });
 

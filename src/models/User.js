@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { FileSchema } = require('./File');
 
 const userSchema = new mongoose.Schema({
   username: {
@@ -43,6 +44,7 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  files: [FileSchema]
 });
 
 const User = mongoose.model('User', userSchema);

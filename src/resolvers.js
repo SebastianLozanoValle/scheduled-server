@@ -9,6 +9,7 @@ const jwt = require("jsonwebtoken");
 const fetch = require("node-fetch");
 const { Invoice } = require("./models/Invoice.js");
 const crypto = require("crypto");
+const { File } = require("./models/File.js");
 
 const JWT_SECRET = 'NEVER_SHARE_THIS';
 
@@ -89,7 +90,7 @@ const resolvers = {
             return newSpecialist;
         },
         createClient: async (_, { input }) => {
-        
+
             // Verificar si ya existe un cliente con el mismo nombre
             const existingClientName = await Client.findOne({ phone: input.phone });
             if (existingClientName) {
@@ -105,7 +106,7 @@ const resolvers = {
             if (existingClientNumber) {
                 throw new Error('Ya existe un cliente con este telefono');
             }
-        
+
             input.password = await hashPassword(input.password);
             const newClient = await Client.create(input);
             return newClient;
@@ -232,8 +233,8 @@ const resolvers = {
 
             newAppointmentData.clientUsername = clientUsername
             newAppointmentData.specialistUsername = specialistUsername
-            
-            
+
+
 
             // Guardar la nueva cita en la base de datos
             await newAppointmentData.save();
@@ -439,6 +440,22 @@ const resolvers = {
                 { $pull: { appointments: { _id: id } } }
             );
             return appointment;
+        },
+        setFileData: async (_, { input }) => {
+            const file = await File.findById(input.id);
+            const user = await User.findById(input.userId);
+            if (!file) {
+                throw new Error('File not found');
+            }
+            if (!user) {
+                throw new Error('User not found');
+            }
+            file.alias = input.alias;
+            file.tipo = input.tipo;
+            file.save();
+            user.files.push(file);
+            user.save();
+            return file;
         }
         // updateAddress: async (_, { id, address }) => {
         //     const specialist = await Specialist.findById(id);

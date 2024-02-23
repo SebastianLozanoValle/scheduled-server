@@ -10,6 +10,23 @@ const typeDefs = gql`
         link: String!
     }
 
+    type File{
+        id: ID!
+        alias: String
+        tipo: String
+        filename: String!
+        path: String!
+    }
+
+    input FileInput {
+        id: ID!
+        userId: ID!
+        alias: String!
+        tipo: String!
+        filename: String
+        path: String
+    }
+
     type Invoice {
         id: ID!
         merchant: String!
@@ -123,7 +140,7 @@ const typeDefs = gql`
 
     enum ServiceType {
         Domicilio
-        Presencial
+        Local
         Mixto
     }
 
@@ -236,7 +253,7 @@ const typeDefs = gql`
         role: Role!
         active: Boolean!
         specialtys: [Specialty]
-        world: World!
+        world: [World]!
         weeklySchedule: WeeklySchedule!
         reviews: [Review]
         paymentOption: PaymentOption!
@@ -369,6 +386,7 @@ const typeDefs = gql`
         toggleSpecialistHighlight(id: ID!): Specialist
         createInvoice(invoice: InvoiceInput!): Checkout
         isSlotAvailable(input: SlotInput!): Slot
+        setFileData(input: FileInput!): File
     }
 `;
 
