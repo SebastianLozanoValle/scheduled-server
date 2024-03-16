@@ -73,7 +73,7 @@ const typeDefs = gql`
         username: String!
         password: String!
         avatar: String
-        age: Int!
+        age: String!
         gender: String!
         phone: String!
         email: String!
@@ -81,6 +81,8 @@ const typeDefs = gql`
         street: String!
         role: Role!
         active: Boolean!
+        files: [File]
+        notifications: [Notification]
     }
 
     enum Role {
@@ -93,7 +95,7 @@ const typeDefs = gql`
         username: String!
         password: String!
         avatar: String
-        age: Int!
+        age: String!
         gender: String!
         phone: String!
         email: String!
@@ -101,6 +103,8 @@ const typeDefs = gql`
         street: String!
         role: Role!
         active: Boolean
+        files: [FileInput]
+        notifications: [NotificationInput]
     }
 
     type Appointment {
@@ -124,12 +128,6 @@ const typeDefs = gql`
         scheduled
         pending
         completed
-    }
-
-    enum Specialty {
-        Peluqueria
-        Manicura
-        Pedicura
     }
 
     enum World {
@@ -239,12 +237,28 @@ const typeDefs = gql`
         appointments: [AppointmentInput]!
     }
 
+    type Specialty {
+        name: String!
+        description: String!
+        icon: String
+        price: Float!
+        time: String!
+    }
+
+    input SpecialtyInput {
+        name: String!
+        description: String!
+        icon: String
+        price: Float!
+        time: String!
+    }
+
     type Specialist {
         id: ID!
         username: String!
         password: String!
         avatar: String
-        age: Int!
+        age: String!
         gender: String!
         phone: String!
         email: String!
@@ -256,17 +270,21 @@ const typeDefs = gql`
         world: [World]!
         weeklySchedule: WeeklySchedule!
         reviews: [Review]
-        paymentOption: PaymentOption!
+        paymentOption: PaymentOption
         appointments: [Appointment]
         highlighted: Boolean!
         serviceType: ServiceType!
+        files: [File]
+        accountNumber: String!
+        notifications: [Notification]
+        reject: Boolean!
     }
 
     input SpecialistInput {
         username: String!
         password: String!
         avatar: String
-        age: Int!
+        age: String!
         gender: String!
         phone: String!
         email: String!
@@ -274,14 +292,17 @@ const typeDefs = gql`
         street: String!
         role: Role!
         active: Boolean
-        specialtys: [Specialty]
-        world: World!
+        specialtys: [SpecialtyInput]
+        world: [World]!
         weeklySchedule: WeeklyScheduleInput!
         reviews: [ReviewInput]
-        paymentOption: PaymentOption!
+        paymentOption: PaymentOption
         appointments: [AppointmentInput]
         highlighted: Boolean
         serviceType: ServiceType!
+        accountNumber: String!
+        notifications: [NotificationInput]
+        reject: Boolean
     }
 
     input UpdateSpecialistInput {
@@ -294,7 +315,7 @@ const typeDefs = gql`
         street: String
         role: Role
         active: Boolean
-        specialtys: [Specialty]
+        specialtys: [SpecialtyInput]
         world: World
         weeklySchedule: WeeklyScheduleInput
         reviews: [ReviewInput]
@@ -302,6 +323,8 @@ const typeDefs = gql`
         appointments: [AppointmentInput]
         highlighted: Boolean
         serviceType: ServiceType
+        notifications: [NotificationInput]
+        reject: Boolean
     }
 
     type Client {
@@ -309,7 +332,7 @@ const typeDefs = gql`
         username: String!
         password: String!
         avatar: String
-        age: Int!
+        age: String!
         gender: String!
         phone: String!
         email: String!
@@ -320,13 +343,15 @@ const typeDefs = gql`
         appointments: [Appointment]!
         favorites: [ID]!
         reviews: [Review]
+        files: [File]
+        notifications: [Notification]
     }
 
     input ClientInput {
         username: String!
         password: String!
         avatar: String
-        age: Int!
+        age: String!
         gender: String!
         phone: String!
         email: String!
@@ -337,6 +362,8 @@ const typeDefs = gql`
         appointments: [AppointmentInput]
         favorites: [ID]
         reviews: [ReviewInput]
+        files: [FileInput]
+        notifications: [NotificationInput]
     }
 
     input UpdateClientInput {
@@ -352,15 +379,36 @@ const typeDefs = gql`
         appointments: [AppointmentInput]
         favorites: [ID]
         reviews: [ReviewInput]
+        files: [FileInput]
+        notifications: [NotificationInput]
     }
 
     type AuthPayload {
         value: String
     }
 
+    type Notification {
+        id: ID!
+        sender: ID!
+        recipient: ID!
+        tipo: String!
+        message: String!
+        date: String!
+    }
+
+    input NotificationInput {
+        sender: ID!
+        recipient: ID!
+        tipo: String!
+        message: String!
+    }
+
     type Query {
         specialistCount: Int!
-        findSpecialists(specialtys: [Specialty], world: World, city: String, serviceType: ServiceType ): [Specialist]!
+        clientCount: Int!
+        invoiceCount: Int!
+        appointmentCount: Int!
+        findSpecialists(specialtys: [SpecialtyInput], world: World, city: String, serviceType: ServiceType ): [Specialist]!
         findSpecialistByName(name: String!): Specialist
         getSpecialist(id: ID!): Specialist
         getClient(id: ID!): Client
@@ -368,6 +416,7 @@ const typeDefs = gql`
         getAppointments: [Appointment]
         getInvoices: [Invoice]
         me: User
+        getUser(id: ID!): User
     }
 
 
@@ -379,14 +428,18 @@ const typeDefs = gql`
         updateClient(id: ID!, input: UpdateClientInput!): Client
         deleteSpecialist(id: ID!): Specialist
         deleteAppointment(id: ID!): Appointment
-        changeSpecialtys(name: String!, specialtys: [Specialty]): Specialist
+        changeSpecialtys(name: String!, specialtys: [SpecialtyInput]): Specialist
         scheduleAppointment(input: AppointmentInput!): Appointment
         createClient(input: ClientInput!): Client
         deleteClient(id: ID!): Client
         toggleSpecialistHighlight(id: ID!): Specialist
-        createInvoice(invoice: InvoiceInput!): Checkout
+        toggleSpecialistActive(id: ID!): Specialist
+        toggleReject(id: ID): Specialist
+        createInvoice(invoice: InvoiceInput!): Invoice
         isSlotAvailable(input: SlotInput!): Slot
         setFileData(input: FileInput!): File
+        sendNotification(input: NotificationInput!): Notification
+        timeToPay(id: ID, order: String!, merchant: String!, checksum: String!): Boolean
     }
 `;
 

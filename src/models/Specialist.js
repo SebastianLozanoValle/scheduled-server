@@ -6,11 +6,47 @@ const { timeSlotSchema } = require('./TimeSlot.js');
 
 const specialistSchema = new mongoose.Schema({
   ...userSchema.obj, // inherit user schema
-  specialtys:  {
-    type: [String],
-    enum: ['Peluqueria', 'Manicura', 'Pedicura'],
-  },
-  world:  {
+  specialtys: [
+    {
+      name:{
+        type: String,
+        required: true,
+      },
+      description:{
+        type: String,
+        required: true,
+      },
+      icon:{
+        type: String,
+        required: false,
+      },
+      price:{
+        type: Number,
+        required: true,
+        validate(value) {
+          if (value <= 0) {
+            throw new Error('Price must be a positive number');
+          }
+        }
+      },
+      time:{
+        type: String,
+        required: true,
+        validate: {
+          validator: function(value) {
+            // Convertir el tiempo a minutos
+            const timeParts = value.split(':');
+            const minutes = parseInt(timeParts[0]) * 60 + parseInt(timeParts[1]);
+
+            // Comprobar si los minutos son un múltiplo de 30 y están entre 30 y 90
+            return minutes % 30 === 0 && minutes >= 30 && minutes <= 90;
+          },
+          message: 'El tiempo debe ser un múltiplo de 30 minutos entre 30 minutos y 1 hora y 30 minutos'
+        }
+      }
+    }
+  ],
+  world: {
     type: [String],
     enum: ['Hombre', 'Mujer', 'Mascota'],
   },
@@ -37,6 +73,14 @@ const specialistSchema = new mongoose.Schema({
   serviceType: {
     type: String,
     enum: ['Domicilio', 'Local', 'Mixto'],
+  },
+  accountNumber: {
+    type: String,
+    required: true,
+  },
+  reject: {
+    type: Boolean,
+    default: false,
   },
 });
 

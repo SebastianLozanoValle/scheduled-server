@@ -46,7 +46,7 @@ const appointmentSchema = new mongoose.Schema({
     },
     serviceType: {
         type: String,
-        enum: ['Domicilio', 'Presencial', 'Mixto'],
+        enum: ['Domicilio', 'Local', 'Mixto'],
     },
 });
 

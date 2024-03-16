@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const { FileSchema } = require('./File');
+const { NotificationSchema } = require('./Notifications');
 
 const userSchema = new mongoose.Schema({
   username: {
@@ -12,7 +13,7 @@ const userSchema = new mongoose.Schema({
   },
   avatar: String,
   age: {
-    type: Number,
+    type: String,
     required: true,
   },
   gender: {
@@ -44,7 +45,8 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
-  files: [FileSchema]
+  files: [FileSchema],
+  notifications: [NotificationSchema]
 });
 
 const User = mongoose.model('User', userSchema);

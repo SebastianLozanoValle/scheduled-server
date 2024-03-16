@@ -112,30 +112,32 @@ const start = async () => {
         console.log(`Server is running on port ${port}`);
 
         // Busca un usuario con el rol de admin
-        // const adminUser = await User.findOne({ role: 'admin'.toLowerCase() });
+        const adminUser = await User.findOne({ role: 'admin'.toLowerCase() });
 
-        // // Si no existe un usuario con el rol de admin...
-        // if (!adminUser) {
-        //     // Crea un nuevo usuario con el rol de admin
-        //     const hashedPassword = await hashPassword('password'); // Asegúrate de encriptar la contraseña en un caso real
-        //     const newAdminUser = new User({
-        //         username: 'admin',
-        //         password: hashedPassword,
-        //         age: 30,
-        //         gender: 'male',
-        //         phone: '1234567890',
-        //         email: 'admin@example.com',
-        //         city: 'City',
-        //         street: 'Street',
-        //         role: 'admin',
-        //         active: true
-        //     });
+        // Si no existe un usuario con el rol de admin...
+        if (!adminUser) {
+            // Crea un nuevo usuario con el rol de admin
+            const hashedPassword = await hashPassword('password'); // Asegúrate de encriptar la contraseña en un caso real
+            const newAdminUser = new User({
+                username: 'admin',
+                password: hashedPassword,
+                age: 30,
+                gender: 'male',
+                phone: '1234567890',
+                email: 'admin@example.com',
+                city: 'City',
+                street: 'Street',
+                role: 'admin',
+                active: true,
+                notifications: [],
+                files: [],
+            });
 
-        //     // Guarda el nuevo usuario en la base de datos
-        //     await newAdminUser.save();
+            // Guarda el nuevo usuario en la base de datos
+            await newAdminUser.save();
 
-        //     console.log('Admin user created');
-        // }
+            console.log('Admin user created');
+        }
     })
 }
 

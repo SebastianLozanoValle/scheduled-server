@@ -10,6 +10,7 @@ const fetch = require("node-fetch");
 const { Invoice } = require("./models/Invoice.js");
 const crypto = require("crypto");
 const { File } = require("./models/File.js");
+const { Notification } = require("./models/Notifications.js");
 
 const JWT_SECRET = 'NEVER_SHARE_THIS';
 
@@ -42,9 +43,63 @@ const validatePasswords = async (currentPassword, newPassword) => {
     return newPassword;
 };
 
+const consultPayValida = async (order, merchant, checksum) => {
+    const myHeaders = new Headers();
+    const requestOptions = {
+        method: 'GET',
+        headers: myHeaders,
+        redirect: 'follow'
+    };
+    const response = await fetch(`https://api-test.payvalida.com/api/v3/porders/${order}?merchant=${merchant}&checksum=${checksum}`, requestOptions)
+    const result = await response.json();
+
+    return result;
+}
+
+const eliminacionPayValida = async (invoice) => {
+    const myHeaders = new Headers();
+    const requestOptions = {
+        method: 'DELETE',
+        headers: myHeaders,
+        redirect: 'follow'
+    };
+
+    fetch(`https://api-test.payvalida.com/api/v3/porders/${invoice.order}?merchant=${invoice.merchant}&checksum=${invoice.checksum}`, requestOptions)
+    const result = await response.json();
+
+    return result;
+}
+
+const validateInvoiceState = async (invoice) => {
+    // Esperar 5 minutos
+    await new Promise(resolve => setTimeout(resolve, 1 * 60 * 1000));
+
+    if (invoice.status !== 'APROBADA') {
+        // Eliminar la factura de la base de datos
+
+        await Appointment.findByIdAndDelete(invoice.order);
+        await Specialist.updateOne(
+            { _id: invoice.specialistId.id },
+            { $pull: { appointments: { _id: invoice.appointmentId } } }
+        );
+        await Client.updateOne(
+            { _id: invoice.clientId.id },
+            { $pull: { appointments: { _id: invoice.appointmentId } } }
+        );
+
+        const response = await eliminacionPayValida(invoice);
+
+        invoice.status = response.DATA.Operation;
+        await invoice.save();
+    }
+}
+
 const resolvers = {
     Query: {
-        specialistCount: () => Specialist.countDocuments(),
+        specialistCount: async () => await Specialist.countDocuments(),
+        clientCount: async () => await Client.countDocuments(),
+        invoiceCount: async () => await Invoice.countDocuments(),
+        appointmentCount: async () => await Appointment.countDocuments(),
         findSpecialists: async (_, { specialtys }) => {
             if (!specialtys || specialtys.length === 0) {
                 return Specialist.find();
@@ -75,6 +130,14 @@ const resolvers = {
         getInvoices: async () => await Invoice.find(),
         me: async (root, args, context) => {
             return context.currentUser;
+        },
+        getUser: async (root, args, context) => {
+            // args.id contiene el ID del cliente que se quiere obtener
+            const user = await User.findById(args.id);
+            if (!user) {
+                throw new Error('User not found', args.id);
+            }
+            return user;
         },
     },
 
@@ -331,6 +394,30 @@ const resolvers = {
             await specialist.save();
             return specialist;
         },
+        toggleSpecialistActive: async (_, { id }, context) => {
+            const { currentUser } = context
+            if (!currentUser) throw new AuthenticationError("not authenticated");
+            if (currentUser.role !== 'admin') throw new AuthenticationError('solo para admins')
+            const specialist = currentUser.role == 'admin' ? await Specialist.findById(id) : null
+            if (specialist == null) {
+                throw new Error('Specialist not found');
+            }
+            specialist.active = !specialist.active;
+            await specialist.save();
+            return specialist;
+        },
+        toggleReject: async (_, { id }, context) => {
+            const { currentUser } = context
+            if (!currentUser) throw new AuthenticationError("not authenticated");
+            if (currentUser.role !== 'admin') throw new AuthenticationError('solo para admins')
+            const specialist = currentUser.role == 'admin' ? await Specialist.findById(id) : null
+            if (specialist == null) {
+                throw new Error('Specialist not found');
+            }
+            specialist.reject = !specialist.reject;
+            await specialist.save()
+            return specialist;
+        },
         login: async (root, args) => {
             let user = await Specialist.findOne({ username: args.username });
 
@@ -408,7 +495,8 @@ const resolvers = {
                     const newInvoice = new Invoice(invoice);
                     await newInvoice.save();
 
-                    return { link: result.DATA.checkout };
+                    // return { link: result.DATA.checkout };
+                    return newInvoice;
                 } else {
                     throw new Error(`Failed to create invoice: ${result.DESC}`);
                 }
@@ -443,20 +531,68 @@ const resolvers = {
         },
         setFileData: async (_, { input }) => {
             const file = await File.findById(input.id);
-            const user = await User.findById(input.userId);
+            let user = await User.findById(input.userId);
             if (!file) {
                 throw new Error('File not found');
             }
             if (!user) {
-                throw new Error('User not found');
+                user = await Specialist.findById(input.userId);
+                if (!user) {
+                    user = await Client.findById(input.userId);
+                }
+                if (!user) {
+                    throw new Error('User not found');
+                }
             }
             file.alias = input.alias;
             file.tipo = input.tipo;
-            file.save();
+            await file.save();
             user.files.push(file);
-            user.save();
+            await user.save();
             return file;
-        }
+        },
+        sendNotification: async (_, { input }) => {
+            // const { sender, recipient, tipo, message } = input;
+            let user = await User.findById(input.sender);
+            if (!user) {
+                user = await Specialist.findById(input.sender);
+                if (!user) {
+                    user = await Client.findById(input.sender);
+                }
+                if (!user) {
+                    throw new Error('User not found');
+                }
+            }
+            let user2 = await Client.findById(input.recipient);
+            if (!user2) {
+                user2 = await Specialist.findById(input.recipient);
+                if (!user2) {
+                    user2 = await User.findById(input.recipient); // Changed from Client to User
+                }
+                if (!user2) {
+                    throw new Error('User not found');
+                }
+            }
+
+            const notification = await Notification.create({ sender: input.sender, recipient: input.recipient, tipo: input.tipo, message: input.message });
+            user.notifications.push(notification);
+            await user.save();
+            user2.notifications.push(notification);
+            await user2.save();
+
+            return notification;
+        },
+        timeToPay: async (_, { id, order, merchant, checksum }) => {
+            const invoice = await Invoice.findById(id);
+            const response = await consultPayValida(order, merchant, checksum);
+
+            invoice.status = response.DATA.STATE;
+            await invoice.save();
+
+            await validateInvoiceState(invoice);
+
+            return invoice.status === 'APROBADA';
+        },
         // updateAddress: async (_, { id, address }) => {
         //     const specialist = await Specialist.findById(id);
         //     if (!specialist) {
