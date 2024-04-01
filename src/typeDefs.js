@@ -449,6 +449,7 @@ const typeDefs = gql`
         timeToPay(id: ID, order: String!, merchant: String!): Boolean
         messageToTrash(id: ID): Notification
         deleteService(id: ID, serviceName: String): Specialist
+        cancelAppointment(id: ID!): Appointment
     }
 `;
 

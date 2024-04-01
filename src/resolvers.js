@@ -75,7 +75,7 @@ const eliminacionPayValida = async (invoice, checksum) => {
 
 const validateInvoiceState = async (invoice, checksum) => {
     // Esperar 5 minutos
-    await new Promise(resolve => setTimeout(resolve, 1 * 60 * 1000));
+    await new Promise(resolve => setTimeout(resolve, 15 * 60 * 1000));
 
     if (invoice.status !== 'APROBADA') {
         // Eliminar la factura de la base de datos
@@ -199,9 +199,19 @@ const resolvers = {
             return Client.findByIdAndUpdate(id, input, { new: true });
         },
         deleteSpecialist: async (_, { id }) => {
+            const specialist = await Specialist.findById(id);
+            await Appointment.findOneAndDelete({ specialistId: id })
+            await Invoice.findOneAndDelete({ 'specialistId.username': specialist.username });
+            await Notification.findOneAndDelete({ sender :id });
+            await Notification.findOneAndDelete({ recipient :id });
             return Specialist.findByIdAndDelete(id);
         },
         deleteClient: async (_, { id }) => {
+            const client = await Client.findById(id);
+            await Appointment.findOneAndDelete({ clientId: id })
+            await Invoice.findOneAndDelete({ 'clientId.username': client.username });
+            await Notification.findOneAndDelete({ sender :id });
+            await Notification.findOneAndDelete({ recipient :id });
             return Client.findByIdAndDelete(id);
         },
         changeSpecialtys: async (_, { name, specialtys }) => {
@@ -679,6 +689,98 @@ const resolvers = {
                 throw new Error(`Failed to find the specialist or missing data (toggleServiceActive), ${error.message}`);
             }
         },
+        cancelAppointment: async (_, { id }, context) => {
+            const { currentUser } = context
+
+            try {
+                const appointment = await Appointment.findById(id);
+                if (!appointment) {
+                    throw new Error("La cita no existe");
+                }
+                const invoice = await Invoice.findOne({ "order": id });
+                if (!invoice) {
+                    throw new Error(`no se ha encontrado la factura relacionada ${id}`)
+                }
+
+                const FIXED_HASH = '0dab1a0cd67bcf598fbbcacd59200199ebb0f3081d3a5d53187354d17b715fb83f15ffaa2578b388ba9fc15f7e25ecea327e10c725bc3a55742b3ff9db5209f3';
+                const preHash = invoice.order + invoice.merchant + FIXED_HASH;
+                const checksum = crypto.createHash('sha512').update(preHash).digest('hex');
+
+                const response = await eliminacionPayValida(invoice, checksum);
+
+                let user
+                let user2
+                let user3
+                let notification
+                let notification2
+
+                if (currentUser.role == 'specialist') {
+                    
+                    user = await Specialist.findById(appointment.specialistId);
+                    if (!user) {
+                        throw new UserInputError(`El especialista asignado a esta cita no existe ${appointment.specialistId}`)
+                    }
+                    user2 = await Client.findById(appointment.clientId);
+                    if (!user2) {
+                        throw new UserInputError(`El cliente asignado a esta cita no existe ${appointment.clientId}`)
+                    }
+                    notification = await Notification.create({ sender: user.id, recipient: user2.id, tipo: 'cancelacion cita', message: `El especialista ha cancelado la cita del dia: ${appointment.date} con hora de inicio: ${appointment.startTime} y hora de finalizacion estimada: ${appointment.estimatedEndTime}.` });
+
+                    user.notifications.push(notification);
+                    await user.save();
+                    user2.notifications.push(notification);
+                    await user2.save();
+
+                } else if (currentUser.role == 'client') {
+
+                    user = await Client.findById(appointment.clientId);
+                    user2 = await Specialist.findById(appointment.specialistId);
+                    notification = await Notification.create({ sender: user.id, recipient: user2.id, tipo: 'cancelacion cita', message: `El cliente ha cancelado la cita del dia: ${appointment.date} con hora de inicio: ${appointment.startTime} y hora de finalizacion estimada: ${appointment.estimatedEndTime}.` });
+
+                    user.notifications.push(notification);
+                    await user.save();
+                    user2.notifications.push(notification);
+                    await user2.save();
+
+                } else if (currentUser.role == 'admin') {
+
+                    user = await User.findById(currentUser.id);
+                    if (!user) {
+                        throw new UserInputError(`El especialista asignado a esta cita no existe ${currentUser.id}`)
+                    }
+                    user2 = await Specialist.findById(appointment.specialistId);
+                    user3 = await Client.findById(appointment.clientId);
+                    notification = await Notification.create({ sender: user.id, recipient: user2.id, tipo: 'cancelacion cita', message: `El administrador ha cancelado la cita del dia: ${appointment.date} con hora de inicio: ${appointment.startTime} y hora de finalizacion estimada: ${appointment.estimatedEndTime}.` });
+                    notification2 = await Notification.create({ sender: user.id, recipient: user3.id, tipo: 'cancelacion cita', message: `El administrador ha cancelado la cita del dia: ${appointment.date} con hora de inicio: ${appointment.startTime} y hora de finalizacion estimada: ${appointment.estimatedEndTime}.` });
+
+                    user.notifications.push(notification);
+                    await user.save();
+                    user2.notifications.push(notification);
+                    await user2.save();
+                    user3.notifications.push(notification2);
+                    await user3.save();
+
+                }
+
+                invoice.status = 'Cancelado';
+
+
+                await Appointment.findByIdAndDelete(id);
+                await Specialist.updateOne(
+                    { _id: appointment.specialistId },
+                    { $pull: { appointments: { _id: id } } }
+                );
+                await Client.updateOne(
+                    { _id: appointment.clientId },
+                    { $pull: { appointments: { _id: id } } }
+                );
+                await invoice.save();
+
+                return appointment;
+            } catch (error) {
+                throw new Error(error.message)
+            }
+        }
         // updateAddress: async (_, { id, address }) => {
         //     const specialist = await Specialist.findById(id);
         //     if (!specialist) {
