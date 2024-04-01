@@ -39,11 +39,15 @@ const specialistSchema = new mongoose.Schema({
             const minutes = parseInt(timeParts[0]) * 60 + parseInt(timeParts[1]);
 
             // Comprobar si los minutos son un múltiplo de 30 y están entre 30 y 90
-            return minutes % 30 === 0 && minutes >= 30 && minutes <= 90;
+            return minutes % 30 === 0 && minutes >= 30 && minutes <= 180;
           },
           message: 'El tiempo debe ser un múltiplo de 30 minutos entre 30 minutos y 1 hora y 30 minutos'
         }
-      }
+      },
+      state: {
+        type: Boolean,
+        default: false,
+      },
     }
   ],
   world: {

@@ -243,6 +243,7 @@ const typeDefs = gql`
         icon: String
         price: Float!
         time: String!
+        state: Boolean!
     }
 
     input SpecialtyInput {
@@ -251,6 +252,7 @@ const typeDefs = gql`
         icon: String
         price: Float!
         time: String!
+        state: Boolean
     }
 
     type Specialist {
@@ -316,13 +318,14 @@ const typeDefs = gql`
         role: Role
         active: Boolean
         specialtys: [SpecialtyInput]
-        world: World
+        world: [World]
         weeklySchedule: WeeklyScheduleInput
         reviews: [ReviewInput]
         paymentOption: PaymentOption
         appointments: [AppointmentInput]
         highlighted: Boolean
         serviceType: ServiceType
+        accountNumber: String
         notifications: [NotificationInput]
         reject: Boolean
     }
@@ -409,6 +412,7 @@ const typeDefs = gql`
         invoiceCount: Int!
         appointmentCount: Int!
         findSpecialists(specialtys: [SpecialtyInput], world: World, city: String, serviceType: ServiceType ): [Specialist]!
+        findClients: [Client]!
         findSpecialistByName(name: String!): Specialist
         getSpecialist(id: ID!): Specialist
         getClient(id: ID!): Client
@@ -417,6 +421,8 @@ const typeDefs = gql`
         getInvoices: [Invoice]
         me: User
         getUser(id: ID!): User
+        getNotificationsByRecipient(id: ID): [Notification]
+        getNotificationsBySender(id: ID): [Notification]
     }
 
 
@@ -434,12 +440,15 @@ const typeDefs = gql`
         deleteClient(id: ID!): Client
         toggleSpecialistHighlight(id: ID!): Specialist
         toggleSpecialistActive(id: ID!): Specialist
+        toggleServiceActive(id: ID!, serviceName: String): Specialist
         toggleReject(id: ID): Specialist
         createInvoice(invoice: InvoiceInput!): Invoice
         isSlotAvailable(input: SlotInput!): Slot
         setFileData(input: FileInput!): File
         sendNotification(input: NotificationInput!): Notification
-        timeToPay(id: ID, order: String!, merchant: String!, checksum: String!): Boolean
+        timeToPay(id: ID, order: String!, merchant: String!): Boolean
+        messageToTrash(id: ID): Notification
+        deleteService(id: ID, serviceName: String): Specialist
     }
 `;
 

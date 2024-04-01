@@ -101,6 +101,25 @@ const start = async () => {
         res.sendFile(file.path);
     });
 
+    app.delete('/eliminar-archivo/:nombreArchivo', (req, res) => {
+        const nombreArchivo = req.params.nombreArchivo;
+
+        // Verificar si el archivo existe
+        fs.access(`directorio_de_tus_archivos/${nombreArchivo}`, fs.constants.F_OK, (err) => {
+            if (err) {
+                return res.status(404).json({ mensaje: 'El archivo no existe.' });
+            }
+
+            // Si el archivo existe, eliminarlo
+            fs.unlink(`directorio_de_tus_archivos/${nombreArchivo}`, (err) => {
+                if (err) {
+                    return res.status(500).json({ mensaje: 'Error al eliminar el archivo.' });
+                }
+                res.status(200).json({ mensaje: 'Archivo eliminado exitosamente.' });
+            });
+        });
+    });
+
     app.use("*", (req, res) => {
         res.status(404).json({
             error: "Not found"

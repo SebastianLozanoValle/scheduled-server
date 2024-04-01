@@ -11,6 +11,7 @@ const { Invoice } = require("./models/Invoice.js");
 const crypto = require("crypto");
 const { File } = require("./models/File.js");
 const { Notification } = require("./models/Notifications.js");
+const { error } = require("console");
 
 const JWT_SECRET = 'NEVER_SHARE_THIS';
 
@@ -52,11 +53,13 @@ const consultPayValida = async (order, merchant, checksum) => {
     };
     const response = await fetch(`https://api-test.payvalida.com/api/v3/porders/${order}?merchant=${merchant}&checksum=${checksum}`, requestOptions)
     const result = await response.json();
+    // const result = await response.json();
+    // throw new Error(JSON.stringify(result))
 
     return result;
 }
 
-const eliminacionPayValida = async (invoice) => {
+const eliminacionPayValida = async (invoice, checksum) => {
     const myHeaders = new Headers();
     const requestOptions = {
         method: 'DELETE',
@@ -64,13 +67,13 @@ const eliminacionPayValida = async (invoice) => {
         redirect: 'follow'
     };
 
-    fetch(`https://api-test.payvalida.com/api/v3/porders/${invoice.order}?merchant=${invoice.merchant}&checksum=${invoice.checksum}`, requestOptions)
+    const response = await fetch(`https://api-test.payvalida.com/api/v3/porders/${invoice.order}?merchant=${invoice.merchant}&checksum=${checksum}`, requestOptions)
     const result = await response.json();
 
     return result;
 }
 
-const validateInvoiceState = async (invoice) => {
+const validateInvoiceState = async (invoice, checksum) => {
     // Esperar 5 minutos
     await new Promise(resolve => setTimeout(resolve, 1 * 60 * 1000));
 
@@ -87,7 +90,7 @@ const validateInvoiceState = async (invoice) => {
             { $pull: { appointments: { _id: invoice.appointmentId } } }
         );
 
-        const response = await eliminacionPayValida(invoice);
+        const response = await eliminacionPayValida(invoice, checksum);
 
         invoice.status = response.DATA.Operation;
         await invoice.save();
@@ -100,6 +103,7 @@ const resolvers = {
         clientCount: async () => await Client.countDocuments(),
         invoiceCount: async () => await Invoice.countDocuments(),
         appointmentCount: async () => await Appointment.countDocuments(),
+        findClients: async () => await Client.find().sort('name'),
         findSpecialists: async (_, { specialtys }) => {
             if (!specialtys || specialtys.length === 0) {
                 return Specialist.find();
@@ -138,6 +142,20 @@ const resolvers = {
                 throw new Error('User not found', args.id);
             }
             return user;
+        },
+        getNotificationsByRecipient: async (root, args, context) => {
+            const notifications = await Notification.find({ recipient: args.id })
+            if (!notifications) {
+                throw new Error('User not found', args.id);
+            }
+            return notifications;
+        },
+        getNotificationsBySender: async (root, args, context) => {
+            const notifications = await Notification.find({ sender: args.id })
+            if (!notifications) {
+                throw new Error('User not found', args.id);
+            }
+            return notifications;
         },
     },
 
@@ -182,6 +200,9 @@ const resolvers = {
         },
         deleteSpecialist: async (_, { id }) => {
             return Specialist.findByIdAndDelete(id);
+        },
+        deleteClient: async (_, { id }) => {
+            return Client.findByIdAndDelete(id);
         },
         changeSpecialtys: async (_, { name, specialtys }) => {
             const specialist = await Specialist.findOne({ name });
@@ -490,6 +511,7 @@ const resolvers = {
                 const result = await response.json();
 
                 if (result.CODE === "0000") {
+                    // throw new Error(JSON.stringify(result))
                     // Crear una nueva factura y guardarla en la base de datos
                     invoice.link = result.DATA.checkout;
                     const newInvoice = new Invoice(invoice);
@@ -582,16 +604,80 @@ const resolvers = {
 
             return notification;
         },
-        timeToPay: async (_, { id, order, merchant, checksum }) => {
+        timeToPay: async (_, { id, order, merchant }) => {
+            const FIXED_HASH = '0dab1a0cd67bcf598fbbcacd59200199ebb0f3081d3a5d53187354d17b715fb83f15ffaa2578b388ba9fc15f7e25ecea327e10c725bc3a55742b3ff9db5209f3';
             const invoice = await Invoice.findById(id);
+            const preHash = order + merchant + FIXED_HASH;
+            const checksum = crypto.createHash('sha512').update(preHash).digest('hex');
             const response = await consultPayValida(order, merchant, checksum);
-
+            console.log(response.DATA.STATE)
+            // throw new Error(JSON.parse(JSON.stringify(response)))
+            console.log(invoice)
             invoice.status = response.DATA.STATE;
             await invoice.save();
 
-            await validateInvoiceState(invoice);
+            await validateInvoiceState(invoice, checksum);
 
             return invoice.status === 'APROBADA';
+        },
+        messageToTrash: async (_, { id }) => {
+            try {
+                const notification = await Notification.findById(id);
+
+                if (!notification) {
+                    throw new Error('Notification not found');
+                }
+
+                notification.tipo = "Papelera";
+                await notification.save();
+
+                return notification;
+            } catch (error) {
+                // Manejar errores de manera apropiada
+                throw new Error(`Failed to move notification to trash: ${error.message}`);
+            }
+        },
+        deleteService: async (_, { id, serviceName }) => {
+            try {
+                const specialist = await Specialist.findById(id);
+                if (!specialist) {
+                    throw new UserInputError("Specialist not found", id);
+                }
+
+                // Filtrar el array de servicios para eliminar el servicio con el nombre dado
+                specialist.specialtys = specialist.specialtys.filter(service => service.name !== serviceName);
+
+                // Guardar los cambios en la base de datos
+                await specialist.save();
+
+                return specialist;
+
+
+            } catch (error) {
+                throw new Error(`Filed to find the specialist or missing data (deleteService), ${error.message}`);
+            }
+        },
+        toggleServiceActive: async (_, { id, serviceName }) => {
+            try {
+                const specialist = await Specialist.findById(id);
+                if (!specialist) {
+                    throw new UserInputError("Specialist not found", id);
+                }
+
+                // Busca el servicio con el nombre dado y cambia su estado
+                specialist.specialtys.forEach(service => {
+                    if (service.name === serviceName) {
+                        service.state = !service.state;
+                    }
+                });
+
+                // Guarda los cambios en la base de datos
+                await specialist.save();
+
+                return specialist;
+            } catch (error) {
+                throw new Error(`Failed to find the specialist or missing data (toggleServiceActive), ${error.message}`);
+            }
         },
         // updateAddress: async (_, { id, address }) => {
         //     const specialist = await Specialist.findById(id);
