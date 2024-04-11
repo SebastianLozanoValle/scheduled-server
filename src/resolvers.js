@@ -450,12 +450,12 @@ const resolvers = {
             return specialist;
         },
         login: async (root, args) => {
-            let user = await Specialist.findOne({ username: args.username });
+            let user = await Specialist.findOne({ email: args.username.toLowerCase() });
 
             if (!user) {
-                user = await Client.findOne({ username: args.username });
+                user = await Client.findOne({ email: args.username.toLowerCase() });
                 if (!user) {
-                    user = await User.findOne({ username: args.username });
+                    user = await User.findOne({ email: args.username.toLowerCase() });
                     if (!user) {
                         throw new UserInputError("usuario no encontrado");
                     }
