@@ -15,6 +15,54 @@ const { error } = require("console");
 
 const JWT_SECRET = 'NEVER_SHARE_THIS';
 
+const userDoesntExist = async(input) => {
+
+    const existingUserNumber = await User.findOne({ phone: input.phone });
+    if (existingUserNumber) {
+        throw new Error('Ya existe un usuario con este telefono');
+    }
+
+    const existingUserEmail = await User.findOne({ email: input.email });
+    if (existingUserEmail) {
+        throw new Error('Ya existe un usuario con este correo electrónico');
+    }
+
+    // const existingUserName = await User.findOne({ username: input.username });
+    // if (existingUserName) {
+    //     throw new Error('Ya existe un cliente con este nombre');
+    // }
+
+    const existingSpecialistNumber = await Specialist.findOne({ phone: input.phone });
+    if (existingSpecialistNumber) {
+        throw new Error('Ya existe un usuario con este telefono');
+    }
+
+    const existingSpecialistEmail = await Specialist.findOne({ email: input.email });
+    if (existingSpecialistEmail) {
+        throw new Error('Ya existe un usuario con este correo electrónico');
+    }
+
+    // const existingSpecialistName = await Specialist.findOne({ username: input.username });
+    // if (existingSpecialistName) {
+    //     throw new Error('Ya existe un cliente con este nombre');
+    // }
+
+    const existingClientNumber = await Client.findOne({ phone: input.phone });
+    if (existingClientNumber) {
+        throw new Error('Ya existe un usuario con este telefono');
+    }
+
+    const existingClientEmail = await Client.findOne({ email: input.email });
+    if (existingClientEmail) {
+        throw new Error('Ya existe un usuario con este correo electrónico');
+    }
+
+    // const existingClientName = await Client.findOne({ username: input.username });
+    // if (existingClientName) {
+    //     throw new Error('Ya existe un cliente con este nombre');
+    // }
+}
+
 const getMonthAndDay = (dateString) => {
     const date = new Date(dateString);
     const month = date.getMonth() + 1; // Los meses en JavaScript van de 0 a 11, por lo que necesitamos sumar 1
@@ -161,6 +209,9 @@ const resolvers = {
 
     Mutation: {
         createSpecialist: async (_, { input }) => {
+
+            await userDoesntExist(input)
+
             const hashedPassword = await hashPassword(input.password);
             input.password = hashedPassword;
             const newSpecialist = Specialist.create(input).catch(error => {
@@ -172,21 +223,7 @@ const resolvers = {
         },
         createClient: async (_, { input }) => {
 
-            // Verificar si ya existe un cliente con el mismo nombre
-            const existingClientName = await Client.findOne({ phone: input.phone });
-            if (existingClientName) {
-                throw new Error('Ya existe un cliente con este nombre');
-            }
-            // Verificar si ya existe un cliente con el mismo correo electrónico
-            const existingClient = await Client.findOne({ email: input.email });
-            if (existingClient) {
-                throw new Error('Ya existe un cliente con este correo electrónico');
-            }
-
-            const existingClientNumber = await Client.findOne({ username: input.username });
-            if (existingClientNumber) {
-                throw new Error('Ya existe un cliente con este telefono');
-            }
+            await userDoesntExist(input)
 
             input.password = await hashPassword(input.password);
             const newClient = await Client.create(input);
@@ -202,16 +239,16 @@ const resolvers = {
             const specialist = await Specialist.findById(id);
             await Appointment.findOneAndDelete({ specialistId: id })
             await Invoice.findOneAndDelete({ 'specialistId.username': specialist.username });
-            await Notification.findOneAndDelete({ sender :id });
-            await Notification.findOneAndDelete({ recipient :id });
+            await Notification.findOneAndDelete({ sender: id });
+            await Notification.findOneAndDelete({ recipient: id });
             return Specialist.findByIdAndDelete(id);
         },
         deleteClient: async (_, { id }) => {
             const client = await Client.findById(id);
             await Appointment.findOneAndDelete({ clientId: id })
             await Invoice.findOneAndDelete({ 'clientId.username': client.username });
-            await Notification.findOneAndDelete({ sender :id });
-            await Notification.findOneAndDelete({ recipient :id });
+            await Notification.findOneAndDelete({ sender: id });
+            await Notification.findOneAndDelete({ recipient: id });
             return Client.findByIdAndDelete(id);
         },
         changeSpecialtys: async (_, { name, specialtys }) => {
@@ -715,7 +752,7 @@ const resolvers = {
                 let notification2
 
                 if (currentUser.role == 'specialist') {
-                    
+
                     user = await Specialist.findById(appointment.specialistId);
                     if (!user) {
                         throw new UserInputError(`El especialista asignado a esta cita no existe ${appointment.specialistId}`)
